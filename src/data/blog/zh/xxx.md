@@ -6,4 +6,24 @@ featured: true
 tags:
   - test
 ---
-## Hello, world! Welcome to my blog! This is a bilingual space I built using Astro. Why did you start this blog? In this era of information fragmentation, I want to have a corner of my own to sink my knowledge and feelings about life. Through the bilingual format, I also hope to communicate with more friends from different cultural backgrounds. What will I share here? In the coming days, I plan to update the following content: Technical notes: front-end development, Astro framework tips and programming techniques. Tool Recommendations: I'll share the best tools to improve work efficiency. Reflections on life: thoughts on reading, traveling, and daily life. How to contact me? If you have any thoughts about my articles, or just want to say hi, feel free to send me an email via the email icon at the bottom of the page! Thank you for reading and I hope we can grow together in the written word.
+## 你好，世界！
+
+欢迎来到我的博客！这是我使用 **Astro** 搭建的双语空间。
+
+### 为什么建立这个博客？
+
+在这个信息碎片化的时代，我希望能有一个属于自己的角落，沉淀下我学到的知识和对生活的感悟。通过双语的形式，我也希望能与更多来自不同文化背景的朋友交流。
+
+### 我会在这里分享什么？
+
+在接下来的日子里，我计划更新以下内容：
+
+1. **技术笔记**：前端开发、Astro 框架的使用心得以及编程技巧。
+1. **工具推荐**：分享那些能提高工作效率的神兵利器。
+1. **生活思考**：关于读书、旅行和日常生活的碎碎念。
+
+### 如何联系我？
+
+如果你对我的文章有任何想法，或者只是想打个招呼，欢迎通过页面底部的**邮件图标**给我发邮件！
+
+感谢你的阅读，希望我们能在文字中共同成长。
