@@ -37,7 +37,7 @@ export const ui = {
     
     // Home page hero
     "hero.greeting": "你好",
-    "hero.description": "",
+    "hero.description": "this is a page",
     "hero.cta": "",
     "hero.socialLinks": "",
     
