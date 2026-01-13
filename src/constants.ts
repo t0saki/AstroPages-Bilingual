@@ -13,7 +13,7 @@ interface Social {
 export const SOCIALS: Social[] = [
   {
     name: "Mail",
-    href: "mailto:yourmail@gmail.com", // <--- 请把这里改为你自己的邮箱地址
+    href: "mailto:issalt777@outlook.com", // <--- 请把这里改为你自己的邮箱地址
     linkTitle: `发送邮件给 ${SITE.title}`,
     icon: IconMail,
   },
