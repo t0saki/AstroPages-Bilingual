@@ -58,15 +58,7 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
       <p>
         {t("hero.description")}
       </p>
-      <p class="mt-2">
-        {t("hero.cta")}
-        <LinkButton
-          class="underline decoration-dashed underline-offset-4 hover:text-accent"
-          href="https://github.com/t0saki/AstroPages-Bilingual#readme"
-        >
-          README
-        </LinkButton>
-      </p>
+
       {
         // only display if at least one social link is enabled
         SOCIALS.length > 0 && (
