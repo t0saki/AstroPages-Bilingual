@@ -4,7 +4,7 @@ import Footer from "@/components/Footer.astro";
 import Breadcrumb from "@/components/Breadcrumb.astro";
 import Layout from "@/layouts/Layout.astro";
 import { SITE } from "@/config";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import type { Lang } from "@/i18n/ui";
 
 export function getStaticPaths() {
   return [
@@ -15,40 +15,13 @@ export function getStaticPaths() {
 
 const { lang } = Astro.params as { lang: Lang };
 
-
-// Bilingual content
+// 这里只保留了标题，其他内容已删除
 const content = {
   zh: {
     title: "关于",
-    intro: "这是一个基于 AstroPaper 主题构建的双语博客系统。",
-    description: "AstroPaper 是一个简洁、无障碍且对 SEO 友好的博客主题，基于 Astro 和 TailwindCSS 构建。",
-    features: "功能特点",
-    featureList: [
-      "🌍 **双语支持** - 完整的中英文内容支持",
-      "🚀 **高性能** - 基于 Astro 5 的静态站点生成",
-      "🌙 **明暗模式** - 支持明暗主题切换",
-      "📱 **响应式设计** - 完美适配各种设备",
-      "🔍 **SEO 友好** - 内置 SEO 优化",
-      "♿ **无障碍** - 遵循 WCAG 标准",
-    ],
-    support: "支持项目",
-    supportText: "如果你喜欢这个项目，欢迎给它一个 ⭐️",
   },
   en: {
     title: "About",
-    intro: "This is a bilingual blog system built on the AstroPaper theme.",
-    description: "AstroPaper is a minimal, accessible and SEO-friendly Astro blog theme built with Astro and TailwindCSS.",
-    features: "Features",
-    featureList: [
-      "🌍 **Bilingual Support** - Full Chinese and English content support",
-      "🚀 **High Performance** - Built on Astro 5 static site generation",
-      "🌙 **Dark Mode** - Light and dark theme toggle",
-      "📱 **Responsive** - Works perfectly on all devices",
-      "🔍 **SEO Friendly** - Built-in SEO optimization",
-      "♿ **Accessible** - Follows WCAG standards",
-    ],
-    support: "Support",
-    supportText: "If you like this project, please give it a ⭐️",
   },
 };
 
@@ -62,25 +35,10 @@ const c = content[lang as keyof typeof content];
     <section id="about" class="app-prose mb-28 max-w-app prose-img:border-0">
       <h1 class="text-2xl tracking-wider sm:text-3xl">{c.title}</h1>
       
-      <p>{c.intro}</p>
-      <p>{c.description}</p>
-      
-      <h2>{c.features}</h2>
-      <ul>
-        {c.featureList.map(feature => (
-          <li set:html={feature.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')} />
-        ))}
-      </ul>
-      
-      <h2>{c.support}</h2>
-      <p>
-        {c.supportText}
-        <a href="https://github.com/t0saki/AstroPages-Bilingual" target="_blank" rel="noopener noreferrer">
-          GitHub
-        </a>
-      </p>
+      <!-- 这里是空白的，你以后想写内容可以写在这里 -->
+      <p>内容建设中...</p>
+
     </section>
   </main>
   <Footer lang={lang} />
 </Layout>
-
