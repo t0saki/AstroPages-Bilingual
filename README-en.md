@@ -60,10 +60,11 @@ npm run dev
     -   **Build Command**: `npm run build` (default)
     -   **Output Directory**: `dist` (default)
 5.  Click **Save and Deploy**.
+6.  **Note**: After deployment, it is recommended to **disable Rocket Loader** in Cloudflare Dashboard under **Speed > Optimization**. Rocket Loader interferes with Astro's Client Router (View Transitions), causing issues with page navigation and script execution.
 
 ### Configure Production CMS (GitHub Mode)
 
-To edit content on the live site (`/keystatic`), you need to connect Keystatic to GitHub.
+To edit content on the live site (`/keystatic`), you need to connect Keystatic to GitHub. If you prefer to manage content directly through GitHub instead of using a separate Keystatic admin interface, you can skip this step, and the website should already be functional.
 
 1.  **Create a GitHub App**:
     -   Go to [GitHub Developer Settings](https://github.com/settings/apps) > New GitHub App.
