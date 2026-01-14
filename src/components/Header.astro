@@ -8,7 +8,7 @@ import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
 import LinkButton from "./LinkButton.astro";
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 import { SITE } from "@/config";
-import { useTranslations, getLangPrefix, type Lang, getLangFromUrl } from "@/i18n/ui";
+import { useTranslations, getLangPrefix, type Lang, getLangFromUrl, defaultLang } from "@/i18n/ui";
 
 interface Props {
   lang?: Lang;
@@ -27,8 +27,19 @@ const currentPath =
 const isActive = (path: string) => {
   const currentPathArray = currentPath.split("/").filter(p => p.trim());
   const pathArray = path.split("/").filter(p => p.trim());
+  
+  // Chinese (default) is at root, so feature is at index 0
+  // English (non-default) has prefix, so feature is at index 1
+  const sectionIndex = lang === defaultLang ? 0 : 1;
 
-  return currentPath === path || currentPathArray[1] === pathArray[1];
+  const isMatch = currentPath === path || (
+    currentPathArray.length > sectionIndex &&
+    pathArray.length > sectionIndex &&
+    currentPathArray[sectionIndex] === pathArray[sectionIndex]
+  );
+  
+  console.log(`[NavDebug] path: ${path}, currentPath: ${currentPath}, lang: ${lang}, sectionIndex: ${sectionIndex}, isMatch: ${isMatch}`);
+  return isMatch;
 };
 
 // Language-prefixed paths (Chinese uses root, English uses /en)

@@ -68,7 +68,7 @@ npm run dev
 
 ### 配置生产环境 CMS (GitHub 模式)
 
-要在线上站点 (`/keystatic`) 编辑内容，需要将 Keystatic 连接到 GitHub。如果您希望直接通过 GitHub 管理内容而不是通过单独的 Keystatic 管理端，可以跳过此步骤。
+要在线上站点 (`/keystatic`) 编辑内容，需要将 Keystatic 连接到 GitHub。如果您希望直接通过 GitHub 管理内容而不是通过单独的 Keystatic 管理端，可以跳过此步骤，网站应该已经可用了。
 
 1. **创建 GitHub App**：
 * 前往 [GitHub Developer Settings](https://github.com/settings/apps) > New GitHub App。
