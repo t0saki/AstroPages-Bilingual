@@ -158,6 +158,12 @@ export function useTranslations(lang: Lang) {
   };
 }
 
+export function getLangFromUrl(url: URL): Lang {
+  const [, lang] = url.pathname.split("/");
+  if (lang in languages) return lang as Lang;
+  return defaultLang;
+}
+
 /**
  * Get the URL prefix for a language
  * Chinese (default) has no prefix, English has /en prefix

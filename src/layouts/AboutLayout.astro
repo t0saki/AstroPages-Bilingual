@@ -5,20 +5,22 @@ import Footer from "@/components/Footer.astro";
 import Breadcrumb from "@/components/Breadcrumb.astro";
 import Layout from "./Layout.astro";
 import { SITE } from "@/config";
+import { getLangFromUrl } from "@/i18n/ui";
 
 type Props = MarkdownLayoutProps<{ title: string }>;
 
 const { frontmatter } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
 ---
 
-<Layout title={`${frontmatter.title} | ${SITE.title}`}>
-  <Header />
-  <Breadcrumb />
+<Layout title={`${frontmatter.title} | ${SITE.title}`} lang={lang}>
+  <Header lang={lang} />
+  <Breadcrumb lang={lang} />
   <main id="main-content" class="app-layout">
     <section id="about" class="app-prose mb-28 max-w-app prose-img:border-0">
       <h1 class="text-2xl tracking-wider sm:text-3xl">{frontmatter.title}</h1>
       <slot />
     </section>
   </main>
-  <Footer />
+  <Footer lang={lang} />
 </Layout>

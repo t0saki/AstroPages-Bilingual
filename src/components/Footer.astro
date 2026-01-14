@@ -1,7 +1,7 @@
 ---
 import type { HTMLAttributes } from "astro/types";
 import Socials from "./Socials.astro";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, type Lang, getLangFromUrl } from "@/i18n/ui";
 
 const currentYear = new Date().getFullYear();
 
@@ -10,7 +10,7 @@ type Props = {
   lang?: Lang;
 } & HTMLAttributes<"footer">;
 
-const { noMarginTop = false, class: className, lang = "en", ...attrs } = Astro.props;
+const { noMarginTop = false, class: className, lang = getLangFromUrl(Astro.url), ...attrs } = Astro.props;
 const t = useTranslations(lang);
 
 const copyrightText = t("footer.copyright").replace("{year}", String(currentYear));

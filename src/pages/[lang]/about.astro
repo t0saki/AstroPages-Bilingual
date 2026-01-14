@@ -4,7 +4,7 @@ import Footer from "@/components/Footer.astro";
 import Breadcrumb from "@/components/Breadcrumb.astro";
 import Layout from "@/layouts/Layout.astro";
 import { SITE } from "@/config";
-import type { Lang } from "@/i18n/ui";
+
 
 export function getStaticPaths() {
   return [
@@ -12,7 +12,7 @@ export function getStaticPaths() {
   ];
 }
 
-const { lang } = Astro.params as { lang: Lang };
+const lang = getLangFromUrl(Astro.url);
 
 // 这里只保留了标题，其他内容已删除
 const content = {

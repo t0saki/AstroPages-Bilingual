@@ -1,7 +1,7 @@
 ---
 import Breadcrumb from "@/components/Breadcrumb.astro";
 import { SITE } from "@/config";
-import type { Lang } from "@/i18n/ui";
+import { getLangFromUrl, type Lang } from "@/i18n/ui";
 
 type StringTitle = { pageTitle: string };
 type ArrayTitle = { pageTitle: [string, string]; titleTransition: string };
@@ -9,7 +9,7 @@ type ArrayTitle = { pageTitle: [string, string]; titleTransition: string };
 type Props = (StringTitle | ArrayTitle) & { pageDesc?: string; lang?: Lang };
 
 const { props } = Astro;
-const lang = (props as { lang?: Lang }).lang || "en";
+const lang = (props as { lang?: Lang }).lang || getLangFromUrl(Astro.url);
 
 const backUrl = SITE.showBackButton ? Astro.url.pathname : "/";
 ---

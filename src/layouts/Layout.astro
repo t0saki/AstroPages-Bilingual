@@ -19,6 +19,8 @@ type Props = {
   lang?: string;
 };
 
+import { getLangFromUrl } from "@/i18n/ui";
+
 const {
   title = SITE.title,
   author = SITE.author,
@@ -29,7 +31,7 @@ const {
   pubDatetime,
   modDatetime,
   scrollSmooth = false,
-  lang = (Astro.params.lang as string) || "en",
+  lang = getLangFromUrl(Astro.url),
 } = Astro.props;
 
 const socialImageURL = new URL(ogImage, Astro.url);
@@ -139,6 +141,22 @@ const structuredData = {
     }
 
     <ClientRouter />
+
+    <!-- Language Preference Redirect -->
+    <script is:inline>
+      (function() {
+        const preferredLang = localStorage.getItem("preferredLang");
+        const path = window.location.pathname;
+        if (!preferredLang) return;
+
+        // Only redirect on homepage to avoid 404s on deep links
+        if (preferredLang === "en" && path === "/") {
+          window.location.replace("/en/");
+        } else if (preferredLang === "zh" && (path === "/en/" || path === "/en")) {
+          window.location.replace("/");
+        }
+      })();
+    </script>
 
     <!-- Minimal inline script to prevent FOUC - sets theme immediately -->
     <script is:inline>

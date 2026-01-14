@@ -14,7 +14,7 @@ import { slugifyStr } from "@/utils/slugify";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
 import { SITE } from "@/config";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, getLangFromUrl } from "@/i18n/ui";
 
 type Props = {
   post: CollectionEntry<"blog">;
@@ -24,7 +24,7 @@ type Props = {
 
 const { post, posts, lang: propLang } = Astro.props;
 // Extract lang from post ID if not provided
-const lang = propLang || (post.id.startsWith("zh/") ? "zh" : "en") as Lang;
+const lang = propLang || getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
 const {
@@ -172,42 +172,52 @@ const nextPost =
   /** Create a progress indicator
    *  at the top */
   function createProgressBar() {
-    // Create the main container div
-    const progressContainer = document.createElement("div");
-    progressContainer.className =
-      "progress-container fixed top-0 z-10 h-1 w-full bg-background";
+    const progressId = "myBar";
+    const containerId = "progress-container";
 
-    // Create the progress bar div
+    if (document.getElementById(containerId)) return;
+
+    const progressContainer = document.createElement("div");
+    progressContainer.id = containerId;
+    progressContainer.className =
+      "progress-container fixed top-0 z-50 h-1 w-full bg-background pointer-events-none";
+
     const progressBar = document.createElement("div");
     progressBar.className = "progress-bar h-1 w-0 bg-accent";
-    progressBar.id = "myBar";
+    progressBar.id = progressId;
 
-    // Append the progress bar to the progress container
     progressContainer.appendChild(progressBar);
-
-    // Append the progress container to the document body or any other desired parent element
     document.body.appendChild(progressContainer);
   }
-  createProgressBar();
 
-  /** Update the progress bar
-   *  when user scrolls */
   function updateScrollProgress() {
-    document.addEventListener("scroll", () => {
+    const progressId = "myBar";
+    const update = () => {
       const winScroll =
         document.body.scrollTop || document.documentElement.scrollTop;
       const height =
         document.documentElement.scrollHeight -
         document.documentElement.clientHeight;
-      const scrolled = (winScroll / height) * 100;
-      if (document) {
-        const myBar = document.getElementById("myBar");
-        if (myBar) {
-          myBar.style.width = scrolled + "%";
-        }
+      const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
+      
+      const myBar = document.getElementById(progressId);
+      if (myBar) {
+        myBar.style.width = scrolled + "%";
       }
-    });
+    };
+
+    // Initial update
+    update();
+
+    document.addEventListener("scroll", update);
+
+    // Cleanup listener on page swap
+    document.addEventListener("astro:before-swap", () => {
+       document.removeEventListener("scroll", update);
+    }, { once: true });
   }
+
+  createProgressBar();
   updateScrollProgress();
 
   /** Attaches links to headings in the document,

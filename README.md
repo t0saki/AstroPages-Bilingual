@@ -4,6 +4,8 @@
 
 [Demo](https://astropages-bilingual.pages.dev)
 
+[我的博客](https://t0saki.com)同样使用了这个模版。
+
 一个基于 [Astro v5](https://astro.build)、[Keystatic CMS](https://keystatic.com) 和 [Cloudflare Pages](https://pages.cloudflare.com) 构建的现代、高性能双语博客模版。
 
 专为追求“混合（Hybrid）”体验的工程师和内容创作者设计：面向访客使用 **SSG (静态站点生成)** 以获得极致性能，同时提供 **Headless CMS** 带来无需维护数据库的优秀写作体验。
@@ -64,10 +66,11 @@ npm run dev
 
 
 5. 点击 **Save and Deploy**。
+6. **注意**：部署完成后，建议在 Cloudflare Dashboard 的 **Speed > Optimization** 中**关闭 Rocket Loader**。Rocket Loader 会干扰 Astro 的客户端路由（View Transitions），导致页面导航和脚本执行异常。
 
 ### 配置生产环境 CMS (GitHub 模式)
 
-要在线上站点 (`/keystatic`) 编辑内容，需要将 Keystatic 连接到 GitHub。
+要在线上站点 (`/keystatic`) 编辑内容，需要将 Keystatic 连接到 GitHub。如果您希望直接通过 GitHub 管理内容而不是通过单独的 Keystatic 管理端，可以跳过此步骤，网站应该已经可用了。
 
 1. **创建 GitHub App**：
 * 前往 [GitHub Developer Settings](https://github.com/settings/apps) > New GitHub App。

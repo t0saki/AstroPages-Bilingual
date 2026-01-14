@@ -7,7 +7,7 @@ import Footer from "@/components/Footer.astro";
 import Card from "@/components/Card.astro";
 import getPostsByGroupCondition from "@/utils/getPostsByGroupCondition";
 import { SITE } from "@/config";
-import { useTranslations, type Lang, type TranslationKey } from "@/i18n/ui";
+import { useTranslations, type Lang, type TranslationKey, getLangFromUrl } from "@/i18n/ui";
 
 // Redirect to 404 page if `showArchives` config is false
 if (!SITE.showArchives) {
@@ -20,10 +20,10 @@ export function getStaticPaths() {
   ];
 }
 
-const { lang } = Astro.params;
+const lang = getLangFromUrl(Astro.url);
 const allPosts = await getCollection("blog", ({ data }) => !data.draft);
 const posts = allPosts.filter(({ id }) => id.startsWith(`${lang}/`));
-const t = useTranslations(lang as Lang);
+const t = useTranslations(lang);
 
 ---
 

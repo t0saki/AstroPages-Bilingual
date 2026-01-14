@@ -2,7 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 import IconEdit from "@/assets/icons/IconEdit.svg";
 import { SITE } from "@/config";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, type Lang, getLangFromUrl } from "@/i18n/ui";
 
 type Props = {
   hideEditPost?: CollectionEntry<"blog">["data"]["hideEditPost"];
@@ -11,7 +11,7 @@ type Props = {
   lang?: Lang;
 };
 
-const { hideEditPost, post, class: className = "", lang = "en" } = Astro.props;
+const { hideEditPost, post, class: className = "", lang = getLangFromUrl(Astro.url) } = Astro.props;
 const t = useTranslations(lang);
 
 const href = `${SITE.editPost.url}${post.filePath}`;

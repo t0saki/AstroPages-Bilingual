@@ -4,6 +4,8 @@ import PostDetails from "@/layouts/PostDetails.astro";
 import getSortedPosts from "@/utils/getSortedPosts";
 import { getPath } from "@/utils/getPath";
 
+import { getLangFromUrl } from "@/i18n/ui";
+
 type Props = {
   post: CollectionEntry<"blog">;
 };
@@ -26,7 +28,7 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props;
-const { lang } = Astro.params;
+const lang = getLangFromUrl(Astro.url);
 
 const allPosts = await getCollection("blog");
 const langPosts = allPosts.filter(({ id }) => id.startsWith(`${lang}/`));

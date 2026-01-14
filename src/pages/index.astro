@@ -11,12 +11,11 @@ import IconRss from "@/assets/icons/IconRss.svg";
 import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
 import { SITE } from "@/config";
 import { SOCIALS } from "@/constants";
-import { useTranslations, getLangPrefix, type Lang } from "@/i18n/ui";
+import { useTranslations, getLangFromUrl } from "@/i18n/ui";
 
 // Hardcoded to Chinese for root path
-const lang: Lang = "zh";
+const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
-const langPrefix = getLangPrefix(lang);
 
 // Filter posts by Chinese language directory
 const allPosts = await getCollection("blog");

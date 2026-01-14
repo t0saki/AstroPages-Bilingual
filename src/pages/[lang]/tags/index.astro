@@ -7,7 +7,7 @@ import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import getUniqueTags from "@/utils/getUniqueTags";
 import { SITE } from "@/config";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, getLangFromUrl } from "@/i18n/ui";
 
 export function getStaticPaths() {
   return [
@@ -15,8 +15,8 @@ export function getStaticPaths() {
   ];
 }
 
-const { lang } = Astro.params as { lang: Lang };
-const t = useTranslations(lang as Lang);
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 const posts = await getCollection("blog");
 const langPosts = posts.filter(({ id }) => id.startsWith(`${lang}/`));
 

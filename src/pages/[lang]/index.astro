@@ -11,7 +11,7 @@ import IconRss from "@/assets/icons/IconRss.svg";
 import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
 import { SITE } from "@/config";
 import { SOCIALS } from "@/constants";
-import { useTranslations, getLangPrefix, type Lang } from "@/i18n/ui";
+import { useTranslations, getLangPrefix, getLangFromUrl } from "@/i18n/ui";
 
 export async function getStaticPaths() {
   return [
@@ -19,8 +19,8 @@ export async function getStaticPaths() {
   ];
 }
 
-const { lang } = Astro.params as { lang: Lang };
-const t = useTranslations(lang as Lang);
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 const langPrefix = getLangPrefix(lang);
 
 // Filter posts by language directory (e.g., "zh/" or "en/")

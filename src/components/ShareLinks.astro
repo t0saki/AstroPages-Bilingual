@@ -1,13 +1,13 @@
 ---
 import { SHARE_LINKS } from "@/constants";
 import LinkButton from "./LinkButton.astro";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, type Lang, getLangFromUrl } from "@/i18n/ui";
 
 type Props = {
   lang?: Lang;
 };
 
-const { lang = "en" } = Astro.props;
+const { lang = getLangFromUrl(Astro.url) } = Astro.props;
 const t = useTranslations(lang);
 const URL = Astro.url;
 ---
