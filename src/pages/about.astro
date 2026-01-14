@@ -1,0 +1,58 @@
+---
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Layout from "@/layouts/Layout.astro";
+import { SITE } from "@/config";
+import type { Lang } from "@/i18n/ui";
+
+// Hardcoded to Chinese for root path
+const lang: Lang = "zh";
+
+// Chinese content
+const c = {
+  title: "关于",
+  intro: "这是一个基于 AstroPaper 主题构建的双语博客系统。",
+  description: "AstroPaper 是一个简洁、无障碍且对 SEO 友好的博客主题，基于 Astro 和 TailwindCSS 构建。",
+  features: "功能特点",
+  featureList: [
+    "🌍 **双语支持** - 完整的中英文内容支持",
+    "🚀 **高性能** - 基于 Astro 5 的静态站点生成",
+    "🌙 **明暗模式** - 支持明暗主题切换",
+    "📱 **响应式设计** - 完美适配各种设备",
+    "🔍 **SEO 友好** - 内置 SEO 优化",
+    "♿ **无障碍** - 遵循 WCAG 标准",
+  ],
+  support: "支持项目",
+  supportText: "如果你喜欢这个项目，欢迎给它一个 ⭐️",
+};
+---
+
+<Layout title={`${c.title} | ${SITE.title}`}>
+  <Header lang={lang} />
+  <Breadcrumb lang={lang} />
+  <main id="main-content" class="app-layout">
+    <section id="about" class="app-prose mb-28 max-w-app prose-img:border-0">
+      <h1 class="text-2xl tracking-wider sm:text-3xl">{c.title}</h1>
+      
+      <p>{c.intro}</p>
+      <p>{c.description}</p>
+      
+      <h2>{c.features}</h2>
+      <ul>
+        {c.featureList.map(feature => (
+          <li set:html={feature.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')} />
+        ))}
+      </ul>
+      
+      <h2>{c.support}</h2>
+      <p>
+        {c.supportText}
+        <a href="https://github.com/t0saki/AstroPages-Bilingual" target="_blank" rel="noopener noreferrer">
+          GitHub
+        </a>
+      </p>
+    </section>
+  </main>
+  <Footer lang={lang} />
+</Layout>

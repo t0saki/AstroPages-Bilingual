@@ -7,23 +7,18 @@ import Footer from "@/components/Footer.astro";
 import { SITE } from "@/config";
 import { useTranslations, type Lang } from "@/i18n/ui";
 
-export function getStaticPaths() {
-  return [
-    { params: { lang: "en" } },
-  ];
-}
-
-const { lang } = Astro.params as { lang: Lang };
-const t = useTranslations(lang as Lang);
+// Hardcoded to Chinese for root path
+const lang: Lang = "zh";
+const t = useTranslations(lang);
 const backUrl = SITE.showBackButton ? `${Astro.url.pathname}` : "/";
 ---
 
 <Layout title={`${t("nav.search")} | ${SITE.title}`}>
   <Header lang={lang} />
-  <Main pageTitle={t("nav.search")} pageDesc={t("nav.searchDesc")} lang={lang as Lang}>
+  <Main pageTitle={t("nav.search")} pageDesc={t("nav.searchDesc")} lang={lang}>
     <div id="pagefind-search" transition:persist data-backurl={backUrl}></div>
   </Main>
-  <Footer lang={lang as Lang} />
+  <Footer lang={lang} />
 </Layout>
 
 <script>

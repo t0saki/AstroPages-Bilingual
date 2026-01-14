@@ -12,30 +12,31 @@ import getPostsByTag from "@/utils/getPostsByTag";
 import { SITE } from "@/config";
 import { useTranslations, type Lang } from "@/i18n/ui";
 
+// Hardcoded to Chinese for root path
+const lang: Lang = "zh";
+
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const allPosts = await getCollection("blog");
-  const languages = ["en"];
+  
+  // Filter for Chinese posts only
+  const langPosts = allPosts.filter(({ id }) => id.startsWith("zh/"));
+  const tags = getUniqueTags(langPosts);
 
-  return languages.flatMap(lang => {
-    const langPosts = allPosts.filter(({ id }) => id.startsWith(`${lang}/`));
-    const tags = getUniqueTags(langPosts);
+  return tags.flatMap(({ tag, tagName }) => {
+    const tagPosts = getPostsByTag(langPosts, tag);
 
-    return tags.flatMap(({ tag, tagName }) => {
-      const tagPosts = getPostsByTag(langPosts, tag);
-
-      return paginate(tagPosts, {
-        params: { lang, tag },
-        props: { tagName },
-        pageSize: SITE.postPerPage,
-      });
+    return paginate(tagPosts, {
+      params: { tag },
+      props: { tagName },
+      pageSize: SITE.postPerPage,
     });
   });
 }
 
 const params = Astro.params;
-const { tag, lang } = params as { tag: string; lang: Lang };
+const { tag } = params as { tag: string };
 const { page, tagName } = Astro.props;
-const t = useTranslations(lang as Lang);
+const t = useTranslations(lang);
 
 const tagDesc = t("page.tagDesc").replace("{tag}", tagName);
 ---
@@ -58,4 +59,3 @@ const tagDesc = t("page.tagDesc").replace("{tag}", tagName);
 
   <Footer noMarginTop={page.lastPage > 1} lang={lang} />
 </Layout>
-

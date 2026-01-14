@@ -10,26 +10,22 @@ type Props = {
 
 export async function getStaticPaths() {
   const allPosts = await getCollection("blog", ({ data }) => !data.draft);
-  const languages = ["en"];
-
-  return languages.flatMap(lang => {
-    const langPosts = allPosts.filter(({ id }) => id.startsWith(`${lang}/`));
-    
-    return langPosts.map(post => ({
-      params: { 
-        lang,
-        slug: getPath(post.id, post.filePath, false)
-      },
-      props: { post },
-    }));
-  });
+  
+  // Filter for Chinese posts only
+  const langPosts = allPosts.filter(({ id }) => id.startsWith("zh/"));
+  
+  return langPosts.map(post => ({
+    params: { 
+      slug: getPath(post.id, post.filePath, false)
+    },
+    props: { post },
+  }));
 }
 
 const { post } = Astro.props;
-const { lang } = Astro.params;
 
 const allPosts = await getCollection("blog");
-const langPosts = allPosts.filter(({ id }) => id.startsWith(`${lang}/`));
+const langPosts = allPosts.filter(({ id }) => id.startsWith("zh/"));
 const sortedPosts = getSortedPosts(langPosts);
 ---
 

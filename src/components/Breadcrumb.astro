@@ -1,5 +1,5 @@
 ---
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, getLangPrefix, type Lang } from "@/i18n/ui";
 
 type Props = {
   lang?: Lang;
@@ -7,6 +7,7 @@ type Props = {
 
 const { lang = "en" } = Astro.props;
 const t = useTranslations(lang);
+const langPrefix = getLangPrefix(lang);
 
 // Remove current url path and remove trailing slash if exists
 const currentUrlPath = Astro.url.pathname.replace(/\/+$/, "");
@@ -15,8 +16,8 @@ const currentUrlPath = Astro.url.pathname.replace(/\/+$/, "");
 // eg: /tags/tailwindcss => ['tags', 'tailwindcss']
 const breadcrumbList = currentUrlPath.split("/").slice(1);
 
-// Remove language prefix from breadcrumb display
-if (breadcrumbList[0] === "zh" || breadcrumbList[0] === "en") {
+// Remove language prefix from breadcrumb display (only "en" now since "zh" uses root)
+if (breadcrumbList[0] === "en") {
   breadcrumbList.shift();
 }
 
@@ -68,7 +69,7 @@ if (breadcrumbList.length === 1) {
     class="font-light [&>li]:inline [&>li:not(:last-child)>a]:hover:opacity-100"
   >
     <li>
-      <a href={`/${lang}/`} class="opacity-80">{t("nav.home")}</a>
+      <a href={`${langPrefix}/`} class="opacity-80">{t("nav.home")}</a>
       <span aria-hidden="true" class="opacity-80">&raquo;</span>
     </li>
     {
@@ -85,7 +86,7 @@ if (breadcrumbList.length === 1) {
           </li>
         ) : (
           <li>
-            <a href={`/${lang}/${breadcrumb.toLowerCase()}/`} class="capitalize opacity-70">
+            <a href={`${langPrefix}/${breadcrumb.toLowerCase()}/`} class="capitalize opacity-70">
               {translateBreadcrumb(breadcrumb)}
             </a>
             <span aria-hidden="true">&raquo;</span>

@@ -11,17 +11,17 @@ import IconRss from "@/assets/icons/IconRss.svg";
 import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
 import { SITE } from "@/config";
 import { SOCIALS } from "@/constants";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, getLangPrefix, type Lang } from "@/i18n/ui";
 
 export async function getStaticPaths() {
   return [
-    { params: { lang: "zh" } },
     { params: { lang: "en" } },
   ];
 }
 
 const { lang } = Astro.params as { lang: Lang };
 const t = useTranslations(lang as Lang);
+const langPrefix = getLangPrefix(lang);
 
 // Filter posts by language directory (e.g., "zh/" or "en/")
 const allPosts = await getCollection("blog");
@@ -42,7 +42,7 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
       </h1>
       <a
         target="_blank"
-        href={`/${lang}/rss.xml`}
+        href={`${langPrefix}/rss.xml`}
         class="inline-block"
         aria-label="rss feed"
         title="RSS Feed"
@@ -104,7 +104,7 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
     }
 
     <div class="my-8 text-center">
-      <LinkButton href={`/${lang}/posts/`}>
+      <LinkButton href={`${langPrefix}/posts/`}>
         {t("button.allPosts")}
         <IconArrowRight class="inline-block rtl:-rotate-180" />
       </LinkButton>
@@ -115,10 +115,14 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
 
 <script>
   document.addEventListener("astro:page-load", () => {
-    const indexLayout = (document.querySelector("#main-content") as HTMLElement)
-      ?.dataset?.layout;
+    const mainContent = document.querySelector("#main-content") as HTMLElement;
+    const indexLayout = mainContent?.dataset?.layout;
     if (indexLayout) {
-      sessionStorage.setItem("backUrl", "/");
+      // Get the current path to properly set backUrl for language-aware navigation
+      const currentPath = window.location.pathname;
+      // For homepage, set backUrl to the current lang's homepage
+      const backUrl = currentPath.startsWith('/en') ? '/en/' : '/';
+      sessionStorage.setItem("backUrl", backUrl);
     }
   });
 </script>

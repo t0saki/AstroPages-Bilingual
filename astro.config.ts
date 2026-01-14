@@ -30,7 +30,13 @@ export default defineConfig({
 
   integrations: [
     sitemap({
-      filter: page => SITE.showArchives || !page.endsWith("/archives"),
+      filter: page => {
+        // Exclude /zh/ paths (Chinese now uses root /)
+        if (page.includes("/zh/")) return false;
+        // Exclude archives if disabled
+        if (!SITE.showArchives && page.endsWith("/archives")) return false;
+        return true;
+      },
     }),
     react(),
     keystatic(),

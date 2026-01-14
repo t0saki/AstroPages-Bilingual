@@ -8,7 +8,7 @@ import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
 import LinkButton from "./LinkButton.astro";
 import LanguageSwitcher from "./LanguageSwitcher.astro";
 import { SITE } from "@/config";
-import { useTranslations, type Lang } from "@/i18n/ui";
+import { useTranslations, getLangPrefix, type Lang } from "@/i18n/ui";
 
 interface Props {
   lang?: Lang;
@@ -16,6 +16,7 @@ interface Props {
 
 const { lang = "zh" } = Astro.props;
 const t = useTranslations(lang);
+const langPrefix = getLangPrefix(lang);
 
 const { pathname } = Astro.url;
 
@@ -30,13 +31,13 @@ const isActive = (path: string) => {
   return currentPath === path || currentPathArray[1] === pathArray[1];
 };
 
-// Language-prefixed paths
-const postsPath = `/${lang}/posts`;
-const tagsPath = `/${lang}/tags`;
-const aboutPath = `/${lang}/about`;
-const archivesPath = `/${lang}/archives`;
-const searchPath = `/${lang}/search`;
-const homePath = `/${lang}/`;
+// Language-prefixed paths (Chinese uses root, English uses /en)
+const postsPath = `${langPrefix}/posts`;
+const tagsPath = `${langPrefix}/tags`;
+const aboutPath = `${langPrefix}/about`;
+const archivesPath = `${langPrefix}/archives`;
+const searchPath = `${langPrefix}/search`;
+const homePath = `${langPrefix}/`;
 ---
 
 <a

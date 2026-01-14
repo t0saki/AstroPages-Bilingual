@@ -12,16 +12,13 @@ export async function getStaticPaths() {
     return [];
   }
 
+  // Filter for Chinese posts only
   const posts = await getCollection("blog").then(p =>
-    p.filter(({ data }) => !data.draft && !data.ogImage)
+    p.filter(({ data, id }) => !data.draft && !data.ogImage && id.startsWith("zh/"))
   );
 
-  // Only generate English OG images here - Chinese OG images are at root /posts/
-  const englishPosts = posts.filter(post => post.id.startsWith("en/"));
-
-  return englishPosts.map(post => ({
+  return posts.map(post => ({
     params: {
-      lang: "en",
       slug: getPath(post.id, post.filePath, false),
     },
     props: post,

@@ -12,7 +12,7 @@
 
 ## ✨ 特性
 
-* **Astro v5 原生 i18n**：全路由 `/[lang]/` 结构（例如 `/zh/`, `/en/`），支持零配置重定向。
+* **Astro v5 原生 i18n**：全路由结构，中文在根路径 `/`，英文在 `/en/`，支持零配置重定向。
 * **混合渲染 (Hybrid Rendering)**：访客端为静态页面 (SSG)，CMS 管理端为动态路由 (SSR)。
 * **Keystatic CMS**：基于 Git 的 Headless CMS。无需数据库，内容直接存储在你的代码仓库中。
 * **Cloudflare Pages**：预配置部署设置，支持自动化构建。
@@ -47,7 +47,7 @@ npm run dev
 
 ```
 
-* **博客**：访问 `http://localhost:4321/` (会自动重定向到 `/zh/`)
+* **博客**：访问 `http://localhost:4321/` (中文首页) 或 `http://localhost:4321/en/` (英文首页)
 * **CMS**：访问 `http://localhost:4321/keystatic` 在本地管理内容。
 
 ## ☁️ 部署

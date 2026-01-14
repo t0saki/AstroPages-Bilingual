@@ -9,16 +9,12 @@ import getUniqueTags from "@/utils/getUniqueTags";
 import { SITE } from "@/config";
 import { useTranslations, type Lang } from "@/i18n/ui";
 
-export function getStaticPaths() {
-  return [
-    { params: { lang: "en" } },
-  ];
-}
+// Hardcoded to Chinese for root path
+const lang: Lang = "zh";
+const t = useTranslations(lang);
 
-const { lang } = Astro.params as { lang: Lang };
-const t = useTranslations(lang as Lang);
 const posts = await getCollection("blog");
-const langPosts = posts.filter(({ id }) => id.startsWith(`${lang}/`));
+const langPosts = posts.filter(({ id }) => id.startsWith("zh/"));
 
 let tags = getUniqueTags(langPosts);
 ---
@@ -32,4 +28,3 @@ let tags = getUniqueTags(langPosts);
   </Main>
   <Footer lang={lang} />
 </Layout>
-

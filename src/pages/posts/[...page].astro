@@ -11,25 +11,23 @@ import getSortedPosts from "@/utils/getSortedPosts";
 import { SITE } from "@/config";
 import { useTranslations, type Lang } from "@/i18n/ui";
 
+// Hardcoded to Chinese for root path
+const lang: Lang = "zh";
+
 export const getStaticPaths = (async ({ paginate }) => {
   const allPosts = await getCollection("blog", ({ data }) => !data.draft);
   
-  // Generate paths for each language
-  const languages = ["en"];
-  return languages.flatMap(lang => {
-    const langPosts = allPosts.filter(({ id }) => id.startsWith(`${lang}/`));
-    const sortedPosts = getSortedPosts(langPosts);
-    
-    return paginate(sortedPosts, {
-      params: { lang },
-      pageSize: SITE.postPerPage
-    });
+  // Filter for Chinese posts only
+  const langPosts = allPosts.filter(({ id }) => id.startsWith("zh/"));
+  const sortedPosts = getSortedPosts(langPosts);
+  
+  return paginate(sortedPosts, {
+    pageSize: SITE.postPerPage
   });
 }) satisfies GetStaticPaths;
 
 const { page } = Astro.props;
-const { lang } = Astro.params as { lang: Lang };
-const t = useTranslations(lang as Lang);
+const t = useTranslations(lang);
 ---
 
 <Layout title={`${t("page.posts")} | ${SITE.title}`}>
@@ -44,4 +42,3 @@ const t = useTranslations(lang as Lang);
 
   <Footer noMarginTop={page.lastPage > 1} lang={lang} />
 </Layout>
-

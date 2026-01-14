@@ -159,18 +159,33 @@ export function useTranslations(lang: Lang) {
 }
 
 /**
+ * Get the URL prefix for a language
+ * Chinese (default) has no prefix, English has /en prefix
+ */
+export function getLangPrefix(lang: Lang): string {
+  return lang === defaultLang ? "" : `/${lang}`;
+}
+
+/**
  * Get the alternate language path for the current URL
+ * Handles switching between root (Chinese) and /en/ (English) paths
  */
 export function getAlternatePath(currentPath: string, targetLang: Lang): string {
   const pathParts = currentPath.split("/").filter(p => p);
   
-  // Check if the first part is a language code
-  if (pathParts[0] === "zh" || pathParts[0] === "en") {
-    pathParts[0] = targetLang;
-  } else {
-    // Prepend language if not present
+  // Remove current language prefix if present ("en" or legacy "zh")
+  if (pathParts[0] === "en" || pathParts[0] === "zh") {
+    pathParts.shift();
+  }
+  
+  // Add target language prefix only if not default (Chinese)
+  if (targetLang !== defaultLang) {
     pathParts.unshift(targetLang);
   }
   
-  return "/" + pathParts.join("/") + (currentPath.endsWith("/") ? "/" : "");
+  // Build the path - handle empty pathParts case (root)
+  const pathString = pathParts.length > 0 ? pathParts.join("/") : "";
+  const trailingSlash = currentPath.endsWith("/") || currentPath === "" || pathParts.length === 0 ? "/" : "";
+  
+  return "/" + pathString + (pathString && trailingSlash ? "/" : trailingSlash ? "" : "");
 }

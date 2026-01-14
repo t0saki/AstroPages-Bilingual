@@ -14,22 +14,18 @@ if (!SITE.showArchives) {
   return Astro.redirect("/404");
 }
 
-export function getStaticPaths() {
-  return [
-    { params: { lang: "en" } },
-  ];
-}
+// Hardcoded to Chinese for root path
+const lang: Lang = "zh";
 
-const { lang } = Astro.params;
 const allPosts = await getCollection("blog", ({ data }) => !data.draft);
-const posts = allPosts.filter(({ id }) => id.startsWith(`${lang}/`));
-const t = useTranslations(lang as Lang);
+const posts = allPosts.filter(({ id }) => id.startsWith("zh/"));
+const t = useTranslations(lang);
 
 ---
 
 <Layout title={`${t("nav.archives")} | ${SITE.title}`}>
-  <Header lang={lang as Lang} />
-  <Main pageTitle={t("nav.archives")} pageDesc={t("nav.archivesDesc")} lang={lang as Lang}>
+  <Header lang={lang} />
+  <Main pageTitle={t("nav.archives")} pageDesc={t("nav.archivesDesc")} lang={lang}>
     {
       Object.entries(
         getPostsByGroupCondition(posts, post =>
@@ -75,5 +71,5 @@ const t = useTranslations(lang as Lang);
         ))
     }
   </Main>
-  <Footer lang={lang as Lang} />
+  <Footer lang={lang} />
 </Layout>

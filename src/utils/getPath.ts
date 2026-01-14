@@ -1,5 +1,6 @@
 import { BLOG_PATH } from "@/config";
 import { slugifyStr } from "./slugify";
+import { defaultLang } from "@/i18n/ui";
 
 /**
  * Get full path of a blog post
@@ -28,10 +29,10 @@ export function getPath(
     .map(segment => slugifyStr(segment)); // slugify each segment path
 
   // Build base path with language prefix for i18n routing
+  // Default locale (Chinese) has no prefix, English has /en prefix
+  const langUrlPrefix = langPrefix === defaultLang ? "" : (langPrefix ? `/${langPrefix}` : "");
   const basePath = includeBase
-    ? langPrefix
-      ? `/${langPrefix}/posts`
-      : "/posts"
+    ? `${langUrlPrefix}/posts`
     : "";
 
   // If not inside the sub-dir (other than lang), simply return the file path

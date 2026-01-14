@@ -6,8 +6,8 @@ import LinkButton from "@/components/LinkButton.astro";
 import { SITE } from "@/config";
 import { useTranslations, type Lang } from "@/i18n/ui";
 
-// Chinese 404 page (root)
-const lang: Lang = "zh";
+// English 404 page
+const lang: Lang = "en";
 const t = useTranslations(lang);
 ---
 
@@ -23,7 +23,7 @@ const t = useTranslations(lang);
       <span aria-hidden="true">¯\_(ツ)_/¯</span>
       <p class="mt-4 text-2xl sm:text-3xl">{t("error.pageNotFound")}</p>
       <LinkButton
-        href="/"
+        href="/en/"
         class="my-6 text-lg underline decoration-dashed underline-offset-8"
       >
         {t("error.goHome")}

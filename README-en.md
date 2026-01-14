@@ -12,7 +12,7 @@ Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refac
 
 ## ✨ Features
 
-- **Astro v5 Native i18n**: Fully routed `/[lang]/` structure (e.g., `/zh/`, `/en/`) with zero-config redirection.
+- **Astro v5 Native i18n**: Full routing structure with Chinese at root `/` and English at `/en/`, with zero-config redirection.
 - **Hybrid Rendering**: Static pages for visitors (SSG), dynamic routes for CMS admin (SSR).
 - **Keystatic CMS**: Git-based Headless CMS. No database required. content lives in your repo.
 - **Cloudflare Pages**: Ready-to-deploy configuration with automated builds.
@@ -45,7 +45,7 @@ Start the development server:
 npm run dev
 ```
 
-- **Blog**: Visit `http://localhost:4321/` (Redirects to `/zh/`)
+- **Blog**: Visit `http://localhost:4321/` (Chinese homepage) or `http://localhost:4321/en/` (English homepage)
 - **CMS**: Visit `http://localhost:4321/keystatic` to manage content locally.
 
 ## ☁️ Deployment
