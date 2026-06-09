@@ -1,22 +1,20 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import { fontData, experimental_getFontFileURL } from "astro:assets";
+import satori from "satori";
+import sharp from "sharp";
 import { getFontPathByWeight } from "@/utils/getFontPathByWeight";
 import { getPostSlug } from "@/utils/getPostPaths";
 import config from "@/config";
-
-// `satori`/`sharp` are imported dynamically inside GET (see og.png.ts) so the
-// native `sharp` binding is never evaluated in the Cloudflare workerd runtime
-// when dynamic OG image generation is disabled.
 
 export async function getStaticPaths() {
   if (!config.features.dynamicOgImage) {
     return [];
   }
 
-  const posts = await getCollection("posts").then(p =>
-    p.filter(({ data }) => !data.draft && !data.ogImage)
-  );
+  const posts = await getCollection("posts", ({ id }) =>
+    id.startsWith("zh/")
+  ).then(p => p.filter(({ data }) => !data.draft && !data.ogImage));
 
   return posts.map(post => ({
     params: { slug: getPostSlug(post.id, post.filePath) },
@@ -28,8 +26,6 @@ export const GET: APIRoute = async ({ props, url }) => {
   if (!config.features.dynamicOgImage) {
     return new Response(null, { status: 404, statusText: "Not found" });
   }
-  const { default: satori } = await import("satori");
-  const { default: sharp } = await import("sharp");
 
   const fonts = fontData["--font-google-sans-code"];
   const regularFontPath = getFontPathByWeight(fonts, 400);

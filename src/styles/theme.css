@@ -7,7 +7,10 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --font-app: var(--font-google-sans-code);
+  /* CJK-capable stack: Source Han Serif (via @chinese-fonts/sypxzs, imported in
+     Layout) for Chinese, Google Sans Code + system fonts as fallbacks. */
+  --font-app: "Source Han Serif CN for Display", var(--font-google-sans-code),
+    "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 }
 
 /* Light theme values */

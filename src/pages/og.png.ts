@@ -1,19 +1,11 @@
 import type { APIRoute } from "astro";
+import satori from "satori";
+import sharp from "sharp";
 import { fontData, experimental_getFontFileURL } from "astro:assets";
 import { getFontPathByWeight } from "@/utils/getFontPathByWeight";
 import config from "@/config";
 
 export const GET: APIRoute = async context => {
-  // Dynamic OG generation relies on `sharp` (native) which is unavailable in
-  // the Cloudflare Workers (workerd) prerender runtime. Gate on the feature
-  // flag and import the renderer dynamically so the native module is never
-  // evaluated when dynamic OG is disabled.
-  if (!config.features.dynamicOgImage) {
-    return new Response(null, { status: 404, statusText: "Not found" });
-  }
-  const { default: satori } = await import("satori");
-  const { default: sharp } = await import("sharp");
-
   const fonts = fontData["--font-google-sans-code"];
   const regularFontPath = getFontPathByWeight(fonts, 400);
   const boldFontPath = getFontPathByWeight(fonts, 700);
