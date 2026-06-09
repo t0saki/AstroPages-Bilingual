@@ -1,55 +1,51 @@
 ---
 import { getCollection } from "astro:content";
 import type { GetStaticPathsOptions } from "astro";
-import Main from "@/layouts/Main.astro";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
-import Footer from "@/components/Footer.astro";
+import Main from "@/components/Main.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
 import Card from "@/components/Card.astro";
+import Footer from "@/components/Footer.astro";
 import Pagination from "@/components/Pagination.astro";
-import getUniqueTags from "@/utils/getUniqueTags";
-import getPostsByTag from "@/utils/getPostsByTag";
-import { SITE } from "@/config";
-import { useTranslations, type Lang } from "@/i18n/ui";
-
-// Hardcoded to Chinese for root path
-const lang: Lang = "zh";
+import { getUniqueTags } from "@/utils/getUniqueTags";
+import { getSortedPosts } from "@/utils/getSortedPosts";
+import { slugifyAll } from "@/utils/slugify";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
-  const allPosts = await getCollection("blog");
-  
-  // Filter for Chinese posts only
-  const langPosts = allPosts.filter(({ id }) => id.startsWith("zh/"));
-  const tags = getUniqueTags(langPosts);
+  const posts = await getCollection("posts", ({ data }) => !data.draft);
+  const tags = getUniqueTags(posts);
 
   return tags.flatMap(({ tag, tagName }) => {
-    const tagPosts = getPostsByTag(langPosts, tag);
+    const tagPosts = getSortedPosts(
+      posts.filter(({ data }) => slugifyAll(data.tags).includes(tag))
+    );
 
     return paginate(tagPosts, {
       params: { tag },
       props: { tagName },
-      pageSize: SITE.postPerPage,
+      pageSize: config.posts.perPage,
     });
   });
 }
 
-const params = Astro.params;
-const { tag } = params as { tag: string };
 const { page, tagName } = Astro.props;
-const t = useTranslations(lang);
 
-const tagDesc = t("page.tagDesc").replace("{tag}", tagName);
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
 ---
 
-<Layout title={`${t("page.tagPrefix")} ${tagName} | ${SITE.title}`}>
-  <Header lang={lang} />
+<Layout title={`${t.pages.tagTitle}: ${tagName} | ${config.site.title}`}>
+  <Header />
+
+  <Breadcrumb />
+
   <Main
-    pageTitle={[`${t("page.tagPrefix")}`, `${tagName}`]}
-    titleTransition={tag}
-    pageDesc={tagDesc}
-    lang={lang}
+    pageTitle={`${t.pages.tagTitle}: ${tagName}`}
+    pageDesc={`${t.pages.tagDesc} "${tagName}".`}
   >
-    <h1 slot="title" transition:name={tag}>{`${t("page.tagPrefix")}${tag}`}</h1>
     <ul>
       {page.data.map(data => <Card {...data} />)}
     </ul>
@@ -57,5 +53,5 @@ const tagDesc = t("page.tagDesc").replace("{tag}", tagName);
 
   <Pagination {page} />
 
-  <Footer noMarginTop={page.lastPage > 1} lang={lang} />
+  <Footer noMarginTop={page.lastPage > 1} />
 </Layout>

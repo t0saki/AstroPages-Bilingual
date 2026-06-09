@@ -7,7 +7,7 @@ export default config({
     process.env.NODE_ENV === 'production' || import.meta.env?.PROD
       ? {
           kind: 'github',
-          repo: 'YOUR_GITHUB_USERNAME/bilingual-blog',
+          repo: 't0saki/AstroPages-Bilingual',
         }
       : {
           kind: 'local',
@@ -16,7 +16,7 @@ export default config({
     posts_zh: collection({
       label: '中文博客',
       slugField: 'title',
-      path: 'src/data/blog/zh/*',
+      path: 'src/content/posts/zh/*',
       format: { contentField: 'content' },
       schema: {
         title: fields.slug({ name: { label: '标题' } }),
@@ -40,7 +40,7 @@ export default config({
     posts_en: collection({
       label: 'English Posts',
       slugField: 'title',
-      path: 'src/data/blog/en/*',
+      path: 'src/content/posts/en/*',
       format: { contentField: 'content' },
       schema: {
         title: fields.slug({ name: { label: 'Title' } }),

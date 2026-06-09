@@ -1,66 +1,59 @@
 ---
-import { useTranslations, getLangPrefix, type Lang, getLangFromUrl } from "@/i18n/ui";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { stripBase, stripLocale } from "@/utils/withBase";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
 
-type Props = {
-  lang?: Lang;
-};
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
 
-const { lang = getLangFromUrl(Astro.url) } = Astro.props;
-const t = useTranslations(lang);
-const langPrefix = getLangPrefix(lang);
-
-// Remove current url path and remove trailing slash if exists
-const currentUrlPath = Astro.url.pathname.replace(/\/+$/, "");
+// Strip base prefix and trailing slash, then locale prefix so segments
+// reflect the logical page path only.
+const pathWithoutBase = stripBase(Astro.url.pathname).replace(/\/+$/, "");
+const currentUrlPath = stripLocale(pathWithoutBase, locale);
 
 // Get url array from path
 // eg: /tags/tailwindcss => ['tags', 'tailwindcss']
-const breadcrumbList = currentUrlPath.split("/").slice(1);
+const breadcrumbList = currentUrlPath.split("/").slice(1).filter(Boolean);
 
-// Remove language prefix from breadcrumb display (only "en" now since "zh" uses root)
-if (breadcrumbList[0] === "en") {
-  breadcrumbList.shift();
-}
-
-// Translate breadcrumb items
-const translateBreadcrumb = (item: string): string => {
-  const translations: Record<string, string> = {
-    posts: t("nav.posts"),
-    tags: t("nav.tags"),
-    about: t("nav.about"),
-    archives: t("nav.archives"),
-    search: t("nav.search"),
-  };
-  return translations[item.toLowerCase()] || item;
+const decodeSegment = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 };
 
-// if breadcrumb is Home > Posts > 1 <etc>
-// replace Posts with Posts (page number)
-if (breadcrumbList[0] === "posts" && breadcrumbList.length > 1 && !isNaN(Number(breadcrumbList[1]))) {
-  const pageNum = breadcrumbList[1] || 1;
-  const pageText = t("page.pageNum").replace("{num}", String(pageNum));
-  breadcrumbList.splice(0, 2, `${t("nav.posts")} (${pageText})`);
-} else if (breadcrumbList[0] === "posts") {
-  breadcrumbList[0] = t("nav.posts");
+const navLabels: Record<string, string> = {
+  posts: t.nav.posts,
+  tags: t.nav.tags,
+  about: t.nav.about,
+  archives: t.nav.archives,
+  search: t.nav.search,
+};
+
+// if breadcrumb is Home > Posts > [page] <etc>
+// replace Posts with localized "Posts (page number)"
+if (breadcrumbList[0] === "posts") {
+  breadcrumbList.splice(
+    0,
+    2,
+    `${t.nav.posts} (${t.pagination.page.toLowerCase()} ${breadcrumbList[1] || 1})`
+  );
 }
 
 // if breadcrumb is Home > Tags > [tag] > [page] <etc>
-// replace [tag] > [page] with [tag] (page number)
-if (breadcrumbList[0] === "tags" || breadcrumbList[0] === t("nav.tags")) {
-  breadcrumbList[0] = t("nav.tags");
-  if (!isNaN(Number(breadcrumbList[2]))) {
-    const pageNum = breadcrumbList[2];
-    const pageText = t("page.pageNum").replace("{num}", String(pageNum));
-    breadcrumbList.splice(
-      1,
-      3,
-      `${breadcrumbList[1]} ${Number(pageNum) === 1 ? "" : "(" + pageText + ")"}`
-    );
-  }
-}
-
-// Translate single-word items
-if (breadcrumbList.length === 1) {
-  breadcrumbList[0] = translateBreadcrumb(breadcrumbList[0]);
+// replace [tag] > [page] with localized [tag] (page number)
+if (breadcrumbList[0] === "tags" && !isNaN(Number(breadcrumbList[2]))) {
+  breadcrumbList.splice(
+    1,
+    3,
+    `${decodeSegment(breadcrumbList[1])} ${
+      Number(breadcrumbList[2]) === 1
+        ? ""
+        : `(${t.pagination.page.toLowerCase()} ${breadcrumbList[2]})`
+    }`
+  );
 }
 ---
 
@@ -69,7 +62,9 @@ if (breadcrumbList.length === 1) {
     class="font-light [&>li]:inline [&>li:not(:last-child)>a]:hover:opacity-100"
   >
     <li>
-      <a href={`${langPrefix}/`} class="opacity-80">{t("nav.home")}</a>
+      <a href={getRelativeLocaleUrl(locale, "")} class="opacity-80">
+        {t.nav.home}
+      </a>
       <span aria-hidden="true" class="opacity-80">&raquo;</span>
     </li>
     {
@@ -81,19 +76,23 @@ if (breadcrumbList.length === 1) {
               aria-current="page"
             >
               {/* make the last part lowercase in Home > Tags > some-tag */}
-              {decodeURIComponent(breadcrumb)}
+              {navLabels[breadcrumb] ?? decodeSegment(breadcrumb)}
             </span>
           </li>
         ) : (
           <li>
-            <a href={`${langPrefix}/${breadcrumb.toLowerCase()}/`} class="capitalize opacity-70">
-              {translateBreadcrumb(breadcrumb)}
+            <a
+              href={getRelativeLocaleUrl(locale, breadcrumb)}
+              class="capitalize opacity-70"
+            >
+              {navLabels[breadcrumb] ?? decodeSegment(breadcrumb)}
             </a>
-            <span aria-hidden="true">&raquo;</span>
+            <span aria-hidden="true" class="opacity-70">
+              &raquo;
+            </span>
           </li>
         )
       )
     }
   </ul>
 </nav>
-

@@ -1,49 +1,70 @@
-import { defineConfig, envField, fontProviders } from "astro/config";
+import {
+  defineConfig,
+  envField,
+  fontProviders,
+  svgoOptimizer,
+} from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
+import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import react from "@astrojs/react";
 import keystatic from "@keystatic/astro";
+import cloudflare from "@astrojs/cloudflare";
+import { unified } from "@astrojs/markdown-remark";
 import remarkToc from "remark-toc";
 import remarkCollapse from "remark-collapse";
+import rehypeCallouts from "rehype-callouts";
 import {
   transformerNotationDiff,
   transformerNotationHighlight,
   transformerNotationWordHighlight,
 } from "@shikijs/transformers";
 import { transformerFileName } from "./src/utils/transformers/fileName";
-import { SITE } from "./src/config";
+import config from "./astro-paper.config";
 
-import cloudflare from "@astrojs/cloudflare";
-
-// https://astro.build/config
 export default defineConfig({
-  site: SITE.website,
+  site: config.site.url,
 
+  // Bilingual: Chinese is the default locale served at root (`/`),
+  // English is served under the `/en/` prefix.
+  // `redirectToDefaultLocale` must be false in Astro 6 when prefixDefaultLocale
+  // is false; the legacy `/zh/*` -> `/*` behaviour is handled by dedicated
+  // redirect routes + the client-side preferred-language script.
   i18n: {
     defaultLocale: "zh",
     locales: ["zh", "en"],
     routing: {
       prefixDefaultLocale: false,
-      redirectToDefaultLocale: true,
+      redirectToDefaultLocale: false,
     },
   },
 
   integrations: [
+    mdx(),
     sitemap({
       filter: page => {
-        // Exclude /zh/ paths (Chinese now uses root /)
+        // Exclude the legacy /zh/* redirect routes from the sitemap.
         if (page.includes("/zh/")) return false;
-        // Exclude archives if disabled
-        if (!SITE.showArchives && page.endsWith("/archives")) return false;
-        return true;
+        // Exclude archives when the feature is disabled.
+        return (
+          config.features?.showArchives !== false ||
+          !page.endsWith("/archives/")
+        );
       },
     }),
+    // React + Keystatic power the Git-based CMS admin UI at /keystatic.
     react(),
     keystatic(),
   ],
 
   markdown: {
-    remarkPlugins: [remarkToc, [remarkCollapse, { test: "Table of contents" }]],
+    processor: unified({
+      remarkPlugins: [
+        remarkToc,
+        [remarkCollapse, { test: "Table of contents" }],
+      ],
+      rehypePlugins: [rehypeCallouts],
+    }),
     shikiConfig: {
       // For more themes, visit https://shiki.style/themes
       themes: { light: "min-light", dark: "night-owl" },
@@ -59,23 +80,35 @@ export default defineConfig({
   },
 
   vite: {
-    // eslint-disable-next-line
-    // @ts-ignore
-    // This will be fixed in Astro 6 with Vite 7 support
-    // See: https://github.com/withastro/astro/issues/14030
     plugins: [tailwindcss()],
     optimizeDeps: {
-      exclude: ["@resvg/resvg-js"],
+      // @resvg/resvg-js ships native bindings used by the OG image renderer.
+      // @keystatic/* register a `virtual:keystatic-config` module that the
+      // esbuild dep-optimizer cannot resolve; exclude them so they are handled
+      // by the Keystatic Vite plugin instead.
+      exclude: [
+        "@resvg/resvg-js",
+        "@keystatic/astro",
+        "@keystatic/core",
+        "@astrojs/cloudflare/entrypoints/server",
+      ],
     },
     ssr: {
       external: ["@resvg/resvg-js"],
     },
   },
 
-  image: {
-    responsiveStyles: true,
-    layout: "constrained",
-  },
+  fonts: [
+    {
+      name: "Google Sans Code",
+      cssVariable: "--font-google-sans-code",
+      provider: fontProviders.google(),
+      fallbacks: ["monospace"],
+      weights: [300, 400, 500, 600, 700],
+      styles: ["normal", "italic"],
+      formats: ["woff", "ttf"],
+    },
+  ],
 
   env: {
     schema: {
@@ -88,17 +121,7 @@ export default defineConfig({
   },
 
   experimental: {
-    preserveScriptOrder: true,
-    fonts: [
-      {
-        name: "Google Sans Code",
-        cssVariable: "--font-google-sans-code",
-        provider: fontProviders.google(),
-        /* fallbacks: ["monospace"], */
-        weights: [300, 400, 500, 600, 700],
-        styles: ["normal", "italic"],
-      },
-    ],
+    svgOptimizer: svgoOptimizer(),
   },
 
   adapter: cloudflare(),

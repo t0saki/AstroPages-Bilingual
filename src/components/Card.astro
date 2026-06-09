@@ -1,36 +1,31 @@
 ---
 import type { CollectionEntry } from "astro:content";
-import { slugifyStr } from "@/utils/slugify";
-import { getPath } from "@/utils/getPath";
+import { getPostUrl } from "@/utils/getPostPaths";
+import { toTransitionName } from "@/utils/toTransitionName";
 import Datetime from "./Datetime.astro";
-import type { Lang } from "@/i18n/ui";
 
 type Props = {
   variant?: "h2" | "h3";
-} & CollectionEntry<"blog">;
+} & CollectionEntry<"posts">;
 
 const { variant: Heading = "h2", id, data, filePath } = Astro.props;
 
 const { title, description, ...props } = data;
-
-// Extract lang from post ID
-const lang = (id.startsWith("zh/") ? "zh" : "en") as Lang;
 ---
 
 <li class="my-6">
   <a
-    href={getPath(id, filePath)}
+    href={getPostUrl(id, filePath, Astro.currentLocale)}
     class:list={[
-      "inline-block text-lg font-medium text-accent",
+      "text-accent inline-block text-lg font-medium",
       "decoration-dashed underline-offset-4 hover:underline",
       "focus-visible:no-underline focus-visible:underline-offset-0",
     ]}
   >
-    <Heading style={{ viewTransitionName: slugifyStr(title) }}>
+    <Heading transition:name={toTransitionName(title)}>
       {title}
     </Heading>
   </a>
-  <Datetime {...props} lang={lang} />
+  <Datetime {...props} />
   <p>{description}</p>
 </li>
-
