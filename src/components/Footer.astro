@@ -1,19 +1,16 @@
 ---
 import type { HTMLAttributes } from "astro/types";
 import Socials from "./Socials.astro";
-import { useTranslations, type Lang, getLangFromUrl } from "@/i18n/ui";
-
-const currentYear = new Date().getFullYear();
+import { useTranslations } from "@/i18n";
 
 type Props = {
   noMarginTop?: boolean;
-  lang?: Lang;
 } & HTMLAttributes<"footer">;
 
-const { noMarginTop = false, class: className, lang = getLangFromUrl(Astro.url), ...attrs } = Astro.props;
-const t = useTranslations(lang);
+const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 
-const copyrightText = t("footer.copyright").replace("{year}", String(currentYear));
+const t = useTranslations(Astro.currentLocale);
+const currentYear = new Date().getFullYear();
 ---
 
 <footer
@@ -21,18 +18,13 @@ const copyrightText = t("footer.copyright").replace("{year}", String(currentYear
   {...attrs}
 >
   <div
-    class:list={[
-      "py-6 sm:py-4",
-      "border-t border-border",
-      "flex flex-col items-center justify-between sm:flex-row-reverse",
-    ]}
+    class="border-border flex flex-col items-center justify-between border-t py-6 sm:flex-row-reverse sm:py-4"
   >
     <Socials />
     <div class="my-2 flex flex-col items-center whitespace-nowrap sm:flex-row">
-      <span>{copyrightText}</span>
+      <span>{t.footer.copyright} &#169; {currentYear}</span>
       <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
-      <span>{t("footer.allRights")}</span>
+      <span>{t.footer.allRightsReserved}</span>
     </div>
   </div>
 </footer>
-

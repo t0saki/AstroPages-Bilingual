@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects.
+# Legacy Chinese paths used a /zh/ prefix; Chinese now lives at the site root.
+/zh/*  /:splat  301
+/zh    /        301

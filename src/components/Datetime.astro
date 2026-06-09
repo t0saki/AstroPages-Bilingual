@@ -3,8 +3,8 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import IconCalendar from "@/assets/icons/IconCalendar.svg";
-import { SITE } from "@/config";
-import { useTranslations, type Lang, getLangFromUrl } from "@/i18n/ui";
+import config from "@/config";
+import { useTranslations } from "@/i18n";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -15,7 +15,6 @@ type Props = {
   pubDatetime: string | Date;
   timezone?: string;
   modDatetime?: string | Date | null;
-  lang?: Lang;
 };
 
 const {
@@ -24,25 +23,22 @@ const {
   size = "sm",
   class: className = "",
   timezone: postTimezone,
-  lang = getLangFromUrl(Astro.url),
 } = Astro.props;
 
-const t = useTranslations(lang);
+const t = useTranslations(Astro.currentLocale);
 
-/* ========== Formatted Datetime ========== */
 const isModified = modDatetime && modDatetime > pubDatetime;
 
 const datetime = dayjs(isModified ? modDatetime : pubDatetime).tz(
-  postTimezone || SITE.timezone
+  postTimezone ?? config.site.timezone
 );
 
-// Use different date format based on language
-const date = lang === "zh" 
-  ? datetime.format("YYYY年M月D日") // e.g., '2025年3月22日'
-  : datetime.format("D MMM, YYYY"); // e.g., '22 Mar, 2025'
+const date = datetime.format("D MMM, YYYY");
 ---
 
-<div class:list={["flex items-center gap-x-2 opacity-80", className]}>
+<div
+  class:list={["text-muted-foreground flex items-center gap-x-2", className]}
+>
   <IconCalendar
     class:list={[
       "inline-block size-6 min-w-5.5",
@@ -52,13 +48,14 @@ const date = lang === "zh"
   {
     isModified && (
       <span class:list={["text-sm", { "sm:text-base": size === "lg" }]}>
-        {t("post.updated")}
+        {t.post.updatedAt}:
       </span>
     )
   }
   <time
     class:list={["text-sm", { "sm:text-base": size === "lg" }]}
-    datetime={datetime.toISOString()}>{date}</time
+    datetime={datetime.toISOString()}
   >
+    {date}
+  </time>
 </div>
-

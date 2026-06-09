@@ -1,0 +1,38 @@
+/* Register design tokens for Tailwind v4 */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  /* CJK-capable stack: Source Han Serif (via @chinese-fonts/sypxzs, imported in
+     Layout) for Chinese, Google Sans Code + system fonts as fallbacks. */
+  --font-app:
+    "Source Han Serif CN for Display", var(--font-google-sans-code),
+    "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+
+/* Light theme values */
+:root,
+[data-theme="light"] {
+  --background: #fdfdfd;
+  --foreground: #282728;
+  --accent: #006cac;
+  --accent-foreground: #ffffff;
+  --muted: #e6e6e6;
+  --muted-foreground: #6b7280;
+  --border: #ece9e9;
+}
+
+/* Dark theme values */
+[data-theme="dark"] {
+  --background: #212737;
+  --foreground: #eaedf3;
+  --accent: #ff6b01;
+  --accent-foreground: #ffffff;
+  --muted: #343f60;
+  --muted-foreground: #afb9ca;
+  --border: #ab4b08;
+}

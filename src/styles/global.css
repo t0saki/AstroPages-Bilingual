@@ -1,35 +1,9 @@
 @import "tailwindcss";
+@import "./theme.css";
 @import "./typography.css";
+@import "rehype-callouts/theme/obsidian";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
-:root,
-html[data-theme="light"] {
-  /* 温暖的米白色，像纸张一样 */
-  --background: #fdfbf7;
-  --foreground: #292524; /* Stone 800 */
-  --accent: #ea580c;     /* Orange 600 - 活力橙 */
-  --muted: #f5f5f4;      /* Stone 100 */
-  --border: #e7e5e4;     /* Stone 200 */
-}
-
-html[data-theme="dark"] {
-  /* 温暖的炭黑色，避免冷色调的压抑感 */
-  --background: #1c1917; /* Stone 900 */
-  --foreground: #fafaf9; /* Stone 50 */
-  --accent: #fb923c;     /* Orange 400 - 柔和的橘光 */
-  --muted: #292524;      /* Stone 800 */
-  --border: #44403c;     /* Stone 700 */
-}
-
-@theme inline {
-  --font-app: "Source Han Serif CN for Display", var(--font-google-sans-code), "PingFang SC", "Microsoft YaHei", "SimHei", "Noto Sans SC", monospace, sans-serif;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-}
 
 @layer base {
   * {
@@ -37,15 +11,9 @@ html[data-theme="dark"] {
     scrollbar-width: auto;
     scrollbar-color: var(--color-muted) transparent;
   }
-  html {
-    @apply overflow-y-scroll scroll-smooth;
-  }
-  body {
-    @apply flex min-h-svh flex-col bg-background font-app text-foreground selection:bg-accent/75 selection:text-background;
-  }
   a,
   button {
-    @apply outline-offset-1 outline-accent focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-dashed;
+    @apply outline-accent outline-offset-1 focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-dashed;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -58,15 +26,13 @@ html[data-theme="dark"] {
 }
 
 @utility app-layout {
-  @apply mx-auto w-full max-w-app px-4;
+  @apply max-w-app mx-auto w-full px-4;
 }
 
-.active-nav {
+@utility active-nav {
   @apply underline decoration-wavy decoration-2 underline-offset-8;
 }
 
-/* Source: https://piccalil.li/blog/a-more-modern-css-reset/ */
-/* Anything that has been anchored to should have extra scroll margin */
 :target {
   scroll-margin-block: 1rem;
 }

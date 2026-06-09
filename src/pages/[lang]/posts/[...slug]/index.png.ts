@@ -1,43 +1,22 @@
-import type { APIRoute } from "astro";
+import { getCollection } from "astro:content";
+import { getPostSlug } from "@/utils/getPostPaths";
+import config from "@/config";
 
-export const prerender = true;
-
-import { getCollection, type CollectionEntry } from "astro:content";
-import { getPath } from "@/utils/getPath";
-import { generateOgImageForPost } from "@/utils/generateOgImages";
-import { SITE } from "@/config";
+// Reuse the exact OG renderer from the root (zh) route; only the path set
+// differs (English posts, under the /en/ tree).
+export { GET } from "@/pages/posts/[...slug]/index.png";
 
 export async function getStaticPaths() {
-  if (!SITE.dynamicOgImage) {
+  if (!config.features.dynamicOgImage) {
     return [];
   }
 
-  const posts = await getCollection("blog").then(p =>
-    p.filter(({ data }) => !data.draft && !data.ogImage)
-  );
+  const posts = await getCollection("posts", ({ id }) =>
+    id.startsWith("en/")
+  ).then(p => p.filter(({ data }) => !data.draft && !data.ogImage));
 
-  // Only generate English OG images here - Chinese OG images are at root /posts/
-  const englishPosts = posts.filter(post => post.id.startsWith("en/"));
-
-  return englishPosts.map(post => ({
-    params: {
-      lang: "en",
-      slug: getPath(post.id, post.filePath, false),
-    },
+  return posts.map(post => ({
+    params: { lang: "en", slug: getPostSlug(post.id, post.filePath) },
     props: post,
   }));
 }
-
-export const GET: APIRoute = async ({ props }) => {
-  if (!SITE.dynamicOgImage) {
-    return new Response(null, {
-      status: 404,
-      statusText: "Not found",
-    });
-  }
-
-  const buffer = await generateOgImageForPost(props as CollectionEntry<"blog">);
-  return new Response(new Uint8Array(buffer), {
-    headers: { "Content-Type": "image/png" },
-  });
-};
