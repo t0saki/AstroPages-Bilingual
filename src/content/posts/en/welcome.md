@@ -29,4 +29,12 @@ This blog uses the following technologies:
 - TailwindCSS v4
 - TypeScript
 
+## Math Formulas
+
+Posts support LaTeX math embedded in Markdown, rendered at build time by KaTeX. For example, the inline mass–energy equation $E = mc^2$, and a display equation:
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+
 Enjoy!

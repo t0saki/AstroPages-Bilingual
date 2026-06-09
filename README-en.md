@@ -21,6 +21,7 @@ Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refac
 - **Dynamic OG Images**: per-post OpenGraph images generated at build time (satori + sharp).
 - **Chinese Font**: bundled Source Han Serif (`@chinese-fonts/sypxzs`).
 - **Static Full-Text Search**: [Pagefind](https://pagefind.app/), indexed per language.
+- **Math Formulas**: LaTeX math embedded in Markdown, rendered at build time by [KaTeX](https://katex.org/) (remark-math + rehype-katex) — no client-side JS.
 - **SEO Optimized**: multi-language meta tags, sitemap, and OpenGraph pre-configured.
 
 ## 🛠️ Quick Start
