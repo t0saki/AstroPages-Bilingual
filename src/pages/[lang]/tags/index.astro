@@ -10,9 +10,13 @@ import { getUniqueTags } from "@/utils/getUniqueTags";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
+export function getStaticPaths() {
+  return [{ params: { lang: "en" } }];
+}
+
 const posts = await getCollection(
   "posts",
-  ({ id, data }) => id.startsWith("zh/") && !data.draft
+  ({ id, data }) => id.startsWith("en/") && !data.draft
 );
 const tags = getUniqueTags(posts);
 

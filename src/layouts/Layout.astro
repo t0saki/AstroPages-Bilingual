@@ -39,6 +39,36 @@ const rssHref = getRelativeLocaleUrl(
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      Bilingual redirect: honour a manually chosen language (set by the language
+      switcher) first, then fall back to the browser language on first visit.
+      Loop-safe: only redirects when the desired locale differs from the current
+      one. zh lives at `/`, en under `/en/`.
+    -->
+    <script is:inline>
+      (function () {
+        try {
+          var parts = location.pathname.split("/").filter(Boolean);
+          var current = parts[0] === "en" ? "en" : "zh";
+          var pref = localStorage.getItem("preferredLang");
+          var nav = (navigator.language || "").toLowerCase();
+          var desired =
+            pref ||
+            (nav.indexOf("zh") === 0
+              ? "zh"
+              : nav.indexOf("en") === 0
+                ? "en"
+                : null);
+          if (!desired || desired === current) return;
+          if (parts[0] === "en") parts.shift();
+          if (desired === "en") parts.unshift("en");
+          var dest = "/" + parts.join("/");
+          if (location.pathname.endsWith("/") && dest !== "/") dest += "/";
+          if (dest !== location.pathname) location.replace(dest);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href={getAssetPath("favicon.svg")} />
     <link rel="icon" href={getAssetPath("favicon.ico")} />
     <link rel="canonical" href={canonicalURL} />

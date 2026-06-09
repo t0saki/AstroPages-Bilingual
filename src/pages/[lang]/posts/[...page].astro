@@ -15,9 +15,12 @@ import config from "@/config";
 export const getStaticPaths = (async ({ paginate }) => {
   const posts = await getCollection(
     "posts",
-    ({ id, data }) => id.startsWith("zh/") && !data.draft
+    ({ id, data }) => id.startsWith("en/") && !data.draft
   );
-  return paginate(getSortedPosts(posts), { pageSize: config.posts.perPage });
+  return paginate(getSortedPosts(posts), {
+    params: { lang: "en" },
+    pageSize: config.posts.perPage,
+  });
 }) satisfies GetStaticPaths;
 
 const { page } = Astro.props;

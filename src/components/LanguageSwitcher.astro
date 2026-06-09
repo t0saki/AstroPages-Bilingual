@@ -1,0 +1,44 @@
+---
+import IconLanguage from "@/assets/icons/IconLanguage.svg";
+import { getAlternatePath, type Locale } from "@/i18n/helpers";
+import { stripBase } from "@/utils/withBase";
+import config from "@/config";
+
+const locale = (Astro.currentLocale ?? config.site.lang) as Locale;
+const target: Locale = locale === "zh" ? "en" : "zh";
+const targetLabel = target === "zh" ? "中文" : "EN";
+const label = target === "zh" ? "切换到中文" : "Switch to English";
+
+// Map the current path to its counterpart in the other language.
+const currentPath = stripBase(Astro.url.pathname);
+const href = getAlternatePath(currentPath, target);
+---
+
+<a
+  href={href}
+  data-lang-switch={target}
+  hreflang={target}
+  class="focus-outline hover:text-accent flex items-center gap-1 px-4 py-3 font-medium sm:px-2 sm:py-1"
+  title={label}
+  aria-label={label}
+>
+  <IconLanguage class="size-5" />
+  <span class="text-sm">{targetLabel}</span>
+</a>
+
+<script>
+  // Remember the manual language choice so the redirect script in Layout
+  // honours it on subsequent visits.
+  function bindLangSwitch() {
+    document
+      .querySelectorAll<HTMLAnchorElement>("a[data-lang-switch]")
+      .forEach(a => {
+        a.addEventListener("click", () => {
+          const target = a.getAttribute("data-lang-switch");
+          if (target) localStorage.setItem("preferredLang", target);
+        });
+      });
+  }
+  bindLangSwitch();
+  document.addEventListener("astro:after-swap", bindLangSwitch);
+</script>

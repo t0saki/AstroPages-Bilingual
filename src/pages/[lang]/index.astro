@@ -13,12 +13,16 @@ import { getSortedPosts } from "@/utils/getSortedPosts";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
+export function getStaticPaths() {
+  return [{ params: { lang: "en" } }];
+}
+
 const { socials, posts: postsConfig } = config;
 
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
 
-const posts = await getCollection("posts", ({ id }) => id.startsWith("zh/"));
+const posts = await getCollection("posts", ({ id }) => id.startsWith("en/"));
 const sortedPosts = getSortedPosts(posts);
 const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
@@ -35,11 +39,11 @@ const homePath = getRelativeLocaleUrl(locale, "");
   >
     <section id="hero" class="border-border border-b pt-8 pb-6">
       <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">
-        你好
+        Hello
       </h1>
       <a
         target="_blank"
-        href={`${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`}
+        href={getRelativeLocaleUrl(locale, "rss.xml")}
         class="inline-block"
         aria-label="RSS Feed"
         title="RSS Feed"
@@ -53,19 +57,22 @@ const homePath = getRelativeLocaleUrl(locale, "");
       </a>
 
       <p>
-        欢迎来到这个中英双语博客。它基于 Astro 与 AstroPaper 主题构建，使用原生
-        i18n 路由：中文文章位于站点根路径，英文文章位于 <code>/en/</code> 下。
-        默认支持明暗主题、静态全文搜索与代码高亮。
+        Welcome to this bilingual blog. Built with Astro and the AstroPaper
+        theme, it uses native i18n routing: English posts live under <code
+          >/en/</code
+        > and Chinese posts live at the site root. Light and dark themes,
+        static full-text search, and code highlighting are supported out of the
+        box.
       </p>
       <p class="mt-2">
-        浏览下面的文章，或通过页眉右上角切换到
+        Browse the posts below, or switch to the
         <LinkButton
           class="hover:text-accent underline decoration-dashed underline-offset-4"
-          href={getRelativeLocaleUrl("en", "")}
+          href={getRelativeLocaleUrl("zh", "")}
         >
-          English
+          中文
         </LinkButton>
-        版本。
+        version from the top-right of the header.
       </p>
       {
         socials.length > 0 && (

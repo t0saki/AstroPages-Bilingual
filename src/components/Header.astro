@@ -8,6 +8,7 @@ import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
 import IconX from "@/assets/icons/IconX.svg";
 import LinkButton from "./LinkButton.astro";
+import LanguageSwitcher from "./LanguageSwitcher.astro";
 import { stripBase, stripLocale } from "@/utils/withBase";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
@@ -143,6 +144,9 @@ const isActive = (path: string) => {
             </li>
           )
         }
+        <li class="col-span-2 flex items-center justify-center sm:col-span-1">
+          <LanguageSwitcher />
+        </li>
         {
           features.lightAndDarkMode && (
             <li class="col-span-1 flex items-center justify-center">

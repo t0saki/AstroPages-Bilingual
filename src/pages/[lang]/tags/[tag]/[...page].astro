@@ -17,7 +17,7 @@ import config from "@/config";
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const posts = await getCollection(
     "posts",
-    ({ id, data }) => id.startsWith("zh/") && !data.draft
+    ({ id, data }) => id.startsWith("en/") && !data.draft
   );
   const tags = getUniqueTags(posts);
 
@@ -27,7 +27,7 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
     );
 
     return paginate(tagPosts, {
-      params: { tag },
+      params: { lang: "en", tag },
       props: { tagName },
       pageSize: config.posts.perPage,
     });
