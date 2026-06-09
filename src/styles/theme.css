@@ -9,7 +9,8 @@
   --color-border: var(--border);
   /* CJK-capable stack: Source Han Serif (via @chinese-fonts/sypxzs, imported in
      Layout) for Chinese, Google Sans Code + system fonts as fallbacks. */
-  --font-app: "Source Han Serif CN for Display", var(--font-google-sans-code),
+  --font-app:
+    "Source Han Serif CN for Display", var(--font-google-sans-code),
     "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 }
 
