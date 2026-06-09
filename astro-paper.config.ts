@@ -21,10 +21,9 @@ export default defineAstroPaperConfig({
   },
   features: {
     lightAndDarkMode: true,
-    // Dynamic per-post OG images (satori + sharp). Works in the pure-static
-    // Node build. Latin titles render fully; CJK titles fall back to the
-    // satori font set (see og.png.ts) — same behaviour as before the rebase.
-    dynamicOgImage: true,
+    // Disabled on the Workers variant: satori/sharp cannot run in the Cloudflare
+    // workerd prerender runtime. (On the pure-static `main` branch this is true.)
+    dynamicOgImage: false,
     showArchives: true,
     showBackButton: true,
     editPost: {
