@@ -18,12 +18,14 @@ const href = getAlternatePath(currentPath, target);
   href={href}
   data-lang-switch={target}
   hreflang={target}
-  class="focus-outline hover:text-accent flex items-center gap-1 px-4 py-3 font-medium sm:px-2 sm:py-1"
+  class="focus-outline hover:text-accent flex items-center gap-1 p-3 sm:p-1"
   title={label}
   aria-label={label}
 >
-  <IconLanguage class="size-5" />
-  <span class="text-sm">{targetLabel}</span>
+  <IconLanguage class="size-6 sm:size-5" />
+  {/* Desktop: icon only (aligned with the other nav icons).
+      Mobile menu: show the language label next to the icon. */}
+  <span class="text-sm sm:sr-only">{targetLabel}</span>
 </a>
 
 <script>
