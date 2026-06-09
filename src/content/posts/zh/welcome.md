@@ -29,4 +29,12 @@ tags:
 - TailwindCSS v4
 - TypeScript
 
+## 数学公式
+
+文章支持 Markdown 内嵌 LaTeX 公式，由 KaTeX 在构建期渲染。例如行内的质能方程 $E = mc^2$，以及块级公式：
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+
 祝你使用愉快！

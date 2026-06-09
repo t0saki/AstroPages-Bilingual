@@ -93,6 +93,11 @@
     pre {
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
     }
+
+    /* Allow wide KaTeX display equations to scroll horizontally on narrow screens */
+    .katex-display {
+      @apply overflow-x-auto overflow-y-hidden;
+    }
   }
 
   /* ===== Code Blocks & Syntax Highlighting ===== */

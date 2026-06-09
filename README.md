@@ -21,6 +21,7 @@
 - **动态 OG 图片**：基于 satori + sharp 在构建时为每篇文章生成 OpenGraph 图片。
 - **中文字体**：内置思源屏显臻宋（`@chinese-fonts/sypxzs`）。
 - **静态全文搜索**：基于 [Pagefind](https://pagefind.app/)，按语言分别索引。
+- **数学公式**：Markdown 内嵌 LaTeX 公式，构建期由 [KaTeX](https://katex.org/) 渲染（remark-math + rehype-katex），无需客户端 JS。
 - **SEO 优化**：预配置多语言 Meta 标签、Sitemap 与 OpenGraph。
 
 ## 🛠️ 快速开始
