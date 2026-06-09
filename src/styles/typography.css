@@ -94,6 +94,13 @@
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
     }
 
+    /* KaTeX math inherits the prose base color by default, which doesn't track
+       the dark theme (no prose-invert here). Force the theme foreground so
+       display math stays legible in dark mode. */
+    .katex {
+      @apply text-foreground;
+    }
+
     /* Allow wide KaTeX display equations to scroll horizontally on narrow screens */
     .katex-display {
       @apply overflow-x-auto overflow-y-hidden;
