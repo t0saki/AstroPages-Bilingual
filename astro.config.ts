@@ -7,9 +7,6 @@ import {
 import tailwindcss from "@tailwindcss/vite";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
-import react from "@astrojs/react";
-import keystatic from "@keystatic/astro";
-import cloudflare from "@astrojs/cloudflare";
 import { unified } from "@astrojs/markdown-remark";
 import remarkToc from "remark-toc";
 import remarkCollapse from "remark-collapse";
@@ -22,14 +19,16 @@ import {
 import { transformerFileName } from "./src/utils/transformers/fileName";
 import config from "./astro-paper.config";
 
+// Pure-static build deployed to Cloudflare Pages.
+// NOTE: the Astro 6 Cloudflare *Workers* adapter is intentionally NOT used here
+// because its workerd prerenderer currently fails static builds
+// (withastro/astro#15684, #15650). A Keystatic + Workers/SSR variant of this
+// project is preserved on the `keystatic-workers` branch (see README).
 export default defineConfig({
   site: config.site.url,
 
   // Bilingual: Chinese is the default locale served at root (`/`),
   // English is served under the `/en/` prefix.
-  // `redirectToDefaultLocale` must be false in Astro 6 when prefixDefaultLocale
-  // is false; the legacy `/zh/*` -> `/*` behaviour is handled by dedicated
-  // redirect routes + the client-side preferred-language script.
   i18n: {
     defaultLocale: "zh",
     locales: ["zh", "en"],
@@ -43,7 +42,7 @@ export default defineConfig({
     mdx(),
     sitemap({
       filter: page => {
-        // Exclude the legacy /zh/* redirect routes from the sitemap.
+        // Exclude the legacy /zh/* paths from the sitemap.
         if (page.includes("/zh/")) return false;
         // Exclude archives when the feature is disabled.
         return (
@@ -52,9 +51,6 @@ export default defineConfig({
         );
       },
     }),
-    // React + Keystatic power the Git-based CMS admin UI at /keystatic.
-    react(),
-    keystatic(),
   ],
 
   markdown: {
@@ -81,21 +77,6 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
-    optimizeDeps: {
-      // @resvg/resvg-js ships native bindings used by the OG image renderer.
-      // @keystatic/* register a `virtual:keystatic-config` module that the
-      // esbuild dep-optimizer cannot resolve; exclude them so they are handled
-      // by the Keystatic Vite plugin instead.
-      exclude: [
-        "@resvg/resvg-js",
-        "@keystatic/astro",
-        "@keystatic/core",
-        "@astrojs/cloudflare/entrypoints/server",
-      ],
-    },
-    ssr: {
-      external: ["@resvg/resvg-js"],
-    },
   },
 
   fonts: [
@@ -123,6 +104,4 @@ export default defineConfig({
   experimental: {
     svgOptimizer: svgoOptimizer(),
   },
-
-  adapter: cloudflare(),
 });

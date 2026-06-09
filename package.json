@@ -16,21 +16,14 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^13.7.0",
     "@astrojs/mdx": "^6.0.1",
-    "@astrojs/react": "^5.0.7",
     "@astrojs/rss": "^4.0.18",
     "@astrojs/sitemap": "^3.7.3",
     "@chinese-fonts/sypxzs": "^3.0.0",
-    "@keystatic/astro": "^5.1.0",
-    "@keystatic/core": "^0.5.50",
-    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.0",
     "astro": "^6.4.2",
     "dayjs": "^1.11.21",
     "lodash.kebabcase": "^4.1.1",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
     "rehype-callouts": "^2.1.2",
     "remark-collapse": "^0.1.2",
     "remark-toc": "^9.0.0",
@@ -46,8 +39,6 @@
     "@shikijs/transformers": "^4.1.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/lodash.kebabcase": "^4.1.9",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
     "@typescript-eslint/parser": "^8.60.0",
     "eslint": "^10.4.1",
     "eslint-plugin-astro": "^1.7.0",
@@ -55,7 +46,6 @@
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "typescript": "^6.0.3",
-    "wrangler": "^4.83.0"
+    "typescript": "^6.0.3"
   }
 }

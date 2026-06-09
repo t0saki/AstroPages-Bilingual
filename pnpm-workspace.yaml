@@ -1,7 +1,3 @@
 allowBuilds:
   esbuild: true
   sharp: true
-  "@resvg/resvg-js": true
-  workerd: true
-minimumReleaseAgeExclude:
-  - '@astrojs/cloudflare@13.7.0'
