@@ -5,6 +5,7 @@ export interface UIStrings {
     tags: string;
     about: string;
     archives: string;
+    gallery: string;
     search: string;
   };
   post: {
@@ -48,6 +49,10 @@ export interface UIStrings {
     archivesTitle: string;
     archivesDesc: string;
 
+    galleryTitle: string;
+    galleryDesc: string;
+    galleryEmpty: string;
+
     searchTitle: string;
     searchDesc: string;
   };
@@ -60,6 +65,11 @@ export interface UIStrings {
     noResults: string;
     goToPreviousPage: string;
     goToNextPage: string;
+    lightboxClose: string;
+    lightboxZoom: string;
+    lightboxPrev: string;
+    lightboxNext: string;
+    lightboxError: string;
   };
   notFound: {
     title: string;

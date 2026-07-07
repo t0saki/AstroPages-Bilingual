@@ -18,5 +18,7 @@ export default [
     },
   },
   { rules: { "no-console": "error" } },
+  // Build-time Node scripts legitimately log progress to the console.
+  { files: ["scripts/**"], rules: { "no-console": "off" } },
   { ignores: ["dist/**", ".astro/**", "public/pagefind/**"] },
 ];

@@ -47,10 +47,20 @@ export default defineConfig({
         // Exclude the legacy /zh/* paths from the sitemap.
         if (page.includes("/zh/")) return false;
         // Exclude archives when the feature is disabled.
-        return (
-          config.features?.showArchives !== false ||
-          !page.endsWith("/archives/")
-        );
+        if (
+          config.features?.showArchives === false &&
+          page.endsWith("/archives/")
+        ) {
+          return false;
+        }
+        // Exclude gallery when the feature is disabled.
+        if (
+          config.features?.gallery?.enabled !== true &&
+          page.endsWith("/gallery/")
+        ) {
+          return false;
+        }
+        return true;
       },
     }),
   ],

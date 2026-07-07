@@ -22,6 +22,7 @@ Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refac
 - **Chinese Font**: bundled Source Han Serif (`@chinese-fonts/sypxzs`).
 - **Static Full-Text Search**: [Pagefind](https://pagefind.app/), indexed per language.
 - **Math Formulas**: LaTeX math embedded in Markdown, rendered at build time by [KaTeX](https://katex.org/) (remark-math + rehype-katex) — no client-side JS.
+- **Photo Gallery**: a `/gallery` page collecting image-host photos from posts marked `gallery: true`, grouped by post, with EXIF (camera / lens / settings) on hover and a [PhotoSwipe](https://photoswipe.com/) lightbox. Thumbnails and EXIF are pre-generated into the repo (see [Photo Gallery](#-photo-gallery)).
 - **SEO Optimized**: multi-language meta tags, sitemap, and OpenGraph pre-configured.
 
 ## 🛠️ Quick Start
@@ -116,6 +117,58 @@ To edit content on the live site (`/keystatic`), connect Keystatic to GitHub:
 Create Markdown/MDX files in `src/content/posts/zh/` or `src/content/posts/en/`. **The directory prefix is the language**: a file under `zh/` becomes `/posts/<slug>`, and under `en/` becomes `/en/posts/<slug>`. Use the same `slug` in both languages so the language switcher maps them one-to-one.
 
 (On the `keystatic-workers` branch you can also edit visually at `/keystatic`.)
+
+## 📸 Photo Gallery
+
+The `/gallery` page collects image-host photos straight from your posts' bodies. There's **no separate image list to maintain** — the photos come from the `![alt](url)` links already in your travelogues.
+
+### 1. Enable & configure
+
+Turn it on in `astro-paper.config.ts` and list the allowed image-host domains (a whitelist):
+
+```ts
+features: {
+  gallery: {
+    enabled: true,
+    imageDomains: ["img.example.com"], // only images on these hosts are collected
+  },
+},
+```
+
+Add `gallery: true` to the frontmatter of any post you want in the gallery. At build time its body images on whitelisted hosts are extracted (`alt` becomes the caption); albums are grouped per post, newest-first, and the title links back to the post. Each language is extracted independently.
+
+```yaml
+---
+title: My Travelogue
+pubDatetime: 2026-06-20T09:00:00Z
+description: …
+gallery: true
+---
+```
+
+### 2. Generate thumbnails & EXIF
+
+The grid renders **thumbnails committed to the repo** (`public/gallery/thumbs/`, 800px AVIF) plus a `src/data/gallery-manifest.json` (dimensions and a privacy-safe EXIF subset — **never GPS**). The site build itself downloads and transcodes nothing; it only reads the manifest.
+
+Generate locally:
+
+```bash
+node scripts/generate-gallery-thumbs.mjs          # incremental: existing thumbs are skipped
+node scripts/generate-gallery-thumbs.mjs --prune  # also delete thumbs no longer referenced
+```
+
+The script encodes thumbnails with `sharp` and extracts EXIF with `exifr`. If a host serves 10-bit AVIF that sharp's prebuilt build can't decode, it falls back to `avifdec` (libavif-bin) / ImageMagick — so those are only needed when required.
+
+### 3. Automation & the "double build"
+
+`.github/workflows/gallery.yml` runs the script automatically when a push to `main` touches `src/content/posts/**`, then commits the generated thumbnails + manifest back to `main` as a bot commit. So adding photos triggers two builds:
+
+1. **Content push → first build**: thumbnails don't exist yet, so missing photos temporarily **fall back to the original image**;
+2. **Bot commit of thumbnails → second build**: thumbnails land and the grid switches to the lightweight repo AVIFs.
+
+The "fallback window" in between is usually just a few minutes. The flow needs no secrets and never touches your deploy config (GITHUB_TOKEN pushes don't recursively trigger Actions, and the pushed paths don't match the `paths` filter). If `main` has branch protection, allow Actions to bypass it or use a PAT.
+
+> v1 only recognizes Markdown image syntax `![](…)`; `<img>` in MDX and reference-style images aren't collected yet.
 
 ## 🧩 Branches
 

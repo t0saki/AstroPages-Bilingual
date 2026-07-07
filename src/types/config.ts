@@ -59,6 +59,20 @@ interface FeaturesConfig {
    * Set to false to disable search entirely.
    */
   search?: "pagefind" | false;
+  /**
+   * Photo gallery page (/gallery) collecting images from posts that set
+   * `gallery: true` in their frontmatter. Only images hosted on one of
+   * `imageDomains` are included. Thumbnails and image dimensions are
+   * pre-generated into the repo by `scripts/generate-gallery-thumbs.mjs`
+   * (run locally or via .github/workflows/gallery.yml).
+   */
+  gallery?:
+    | {
+        enabled: true;
+        /** Hostnames whose images are collected, e.g. ["img.example.com"] */
+        imageDomains: string[];
+      }
+    | { enabled: false };
 }
 
 interface SocialLink {

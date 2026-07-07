@@ -1,0 +1,81 @@
+name: Gallery thumbnails
+
+# When a gallery post changes, regenerate thumbnails + manifest and commit them
+# back to main. That bot commit triggers a second Cloudflare Workers build which
+# picks up the new thumbnails (the "double build" — the first build renders any
+# new photo from its original URL as a fallback until this lands).
+on:
+  push:
+    branches: [main]
+    # Only post edits can change which images the gallery collects. The bot
+    # commit below touches src/data/ + public/gallery/ (not this path), so it
+    # never re-triggers this workflow — and GITHUB_TOKEN pushes don't recurse.
+    paths:
+      - "src/content/posts/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Serialize runs so concurrent commits don't race on the push. Don't cancel an
+# in-flight run — a half-generated commit is worse than waiting.
+concurrency:
+  group: gallery-thumbs
+  cancel-in-progress: false
+
+jobs:
+  thumbnails:
+    name: Generate gallery thumbnails
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: "☁️ Checkout repository"
+        uses: actions/checkout@v4
+
+      # Needed only to decode 10-bit AVIF that sharp's prebuilt libaom can't;
+      # sharp handles everything else. Harmless when unused.
+      - name: "🖼️ Install AVIF decoders (avifdec + ImageMagick)"
+        run: sudo apt-get update && sudo apt-get install -y libavif-bin imagemagick
+
+      - name: "📦 Install pnpm"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.1
+
+      - name: "⬢ Use Node.js (from .nvmrc)"
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: "📦 Install dependencies"
+        run: pnpm install
+
+      # Don't fail the job yet: a few unreachable images shouldn't block
+      # committing the thumbnails that did generate. We surface it at the end.
+      - name: "🏞️ Generate thumbnails + manifest"
+        id: generate
+        continue-on-error: true
+        run: node scripts/generate-gallery-thumbs.mjs
+
+      - name: "💾 Commit generated files"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/gallery-manifest.json 2>/dev/null || true
+          git add public/gallery/thumbs 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No gallery changes to commit."
+            exit 0
+          fi
+          # No [skip ci]: the resulting push must trigger the second Workers build.
+          git commit -m "chore(gallery): regenerate thumbnails + manifest"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: "🚦 Surface generation failures"
+        if: steps.generate.outcome == 'failure'
+        run: |
+          echo "::error::Thumbnail generation reported failures — see the generate step log."
+          exit 1
