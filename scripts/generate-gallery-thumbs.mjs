@@ -29,15 +29,28 @@ const CONFIG_FILE = path.join(ROOT, "astro-paper.config.ts");
 const POSTS_DIR = path.join(ROOT, "src/content/posts");
 const MANIFEST_FILE = path.join(ROOT, "src/data/gallery-manifest.json");
 const THUMBS_DIR = path.join(ROOT, "public/gallery/thumbs");
+const HDR_SCRIPT = path.join(ROOT, "scripts/hdr_tonemap.py");
 
-const CONCURRENCY = 4;
+const CONCURRENCY = Number(process.env.GALLERY_CONCURRENCY) || 4;
 const THUMB_SIZE = 800;
 const THUMB_QUALITY = 60;
+// Present as a real browser: self-hosted image hosts (e.g. Cloudflare-fronted
+// ones) often reject non-browser User-Agents or missing Referer with a 403.
 const USER_AGENT =
-  "AstroPaper-Gallery-ThumbGen/1.0 (+https://github.com/t0saki/AstroPages-Bilingual)";
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+/** Browser-like request headers, with a same-origin Referer for the image host. */
+function fetchHeaders(url) {
+  return {
+    "User-Agent": USER_AGENT,
+    Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    Referer: new URL(url).origin + "/",
+  };
+}
 
 // Keep in sync with the regex in src/utils/getGalleryAlbums.ts.
-const IMAGE_RE = /!\[([^\]]*)\]\(\s*([^)\s]+?)(?:\s+["'][^"']*["'])?\s*\)/g;
+const IMAGE_RE = /!\[(.*?)\]\(\s*([^)\s]+?)(?:\s+["'][^"']*["'])?\s*\)/g;
 
 const shouldPrune = process.argv.includes("--prune");
 
@@ -147,6 +160,31 @@ function tryExec(cmd, args) {
   });
 }
 
+/** Run a command, resolving its exit code (-1 if it couldn't be spawned). */
+function execCode(cmd, args) {
+  return new Promise(resolve => {
+    const child = spawn(cmd, args, { stdio: "ignore" });
+    child.on("error", () => resolve(-1));
+    child.on("close", code => resolve(code ?? -1));
+  });
+}
+
+/**
+ * Tone-map an HDR (PQ/HLG) image file to an sRGB PNG buffer via hdr_tonemap.py
+ * (color-science-correct: PQ EOTF → BT.2390 → P3/2020→709 → sRGB OETF).
+ * Returns null when the input is not HDR (script exit 3) or the tool chain
+ * (python3 / numpy / ffmpeg) is unavailable — the caller then uses the SDR path.
+ */
+async function hdrTonemapToPng(file) {
+  const out = `${file}.tm.png`;
+  try {
+    const code = await execCode("python3", [HDR_SCRIPT, file, out]);
+    return code === 0 ? await fs.readFile(out) : null;
+  } finally {
+    await fs.rm(out, { force: true });
+  }
+}
+
 /** Rasterize an AVIF buffer to PNG via avifdec or ImageMagick; null if none work. */
 async function externalDecodeAvif(buf) {
   const tmpIn = path.join(os.tmpdir(), `gallery-${crypto.randomUUID()}.avif`);
@@ -178,41 +216,69 @@ function orientedDims(meta) {
     : { width: meta.width ?? 0, height: meta.height ?? 0 };
 }
 
+/** Resize an already-decoded (oriented) PNG/sharp input to the AVIF thumbnail. */
+function encodeThumb(input) {
+  return sharp(input)
+    .resize(THUMB_SIZE, THUMB_SIZE, { fit: "inside", withoutEnlargement: true })
+    .avif({ quality: THUMB_QUALITY })
+    .toBuffer();
+}
+
 /**
  * Produce a thumbnail buffer + original oriented dimensions.
- * Tries sharp directly, then external AVIF decoders as a fallback.
+ *
+ * 1. HDR (PQ/HLG) inputs are tone-mapped to sRGB by hdr_tonemap.py — sharp's
+ *    prebuilt libaom can't decode 10-bit AVIF anyway, and a naive decode of PQ
+ *    looks washed-out/gray without tone mapping.
+ * 2. Otherwise (SDR JPEG/PNG/WebP/8-bit AVIF): sharp directly, with avifdec /
+ *    ImageMagick as a fallback for AVIF sharp can't read.
  */
 async function makeThumb(buf) {
+  const tmpIn = path.join(os.tmpdir(), `gallery-src-${crypto.randomUUID()}`);
   try {
-    const base = sharp(buf, { failOn: "none" }).rotate();
-    const meta = await base.metadata();
-    const thumb = await sharp(buf, { failOn: "none" })
-      .rotate()
-      .resize(THUMB_SIZE, THUMB_SIZE, {
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .avif({ quality: THUMB_QUALITY })
-      .toBuffer();
-    return { thumb, ...orientedDims(meta) };
-  } catch (err) {
-    if (!isAvif(buf)) throw err;
-    const png = await externalDecodeAvif(buf);
-    if (!png) {
-      throw new Error(
-        "sharp could not decode this AVIF and no external decoder " +
-          "(avifdec / ImageMagick) is available"
-      );
+    await fs.writeFile(tmpIn, buf);
+
+    const hdrPng = await hdrTonemapToPng(tmpIn);
+    if (hdrPng) {
+      // The tone-mapped PNG is already display-oriented sRGB.
+      const meta = await sharp(hdrPng).metadata();
+      return {
+        thumb: await encodeThumb(hdrPng),
+        width: meta.width ?? 0,
+        height: meta.height ?? 0,
+      };
     }
-    const meta = await sharp(png).metadata();
-    const thumb = await sharp(png)
-      .resize(THUMB_SIZE, THUMB_SIZE, {
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .avif({ quality: THUMB_QUALITY })
-      .toBuffer();
-    return { thumb, width: meta.width ?? 0, height: meta.height ?? 0 };
+
+    // SDR path.
+    try {
+      const meta = await sharp(buf, { failOn: "none" }).rotate().metadata();
+      const thumb = await sharp(buf, { failOn: "none" })
+        .rotate()
+        .resize(THUMB_SIZE, THUMB_SIZE, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .avif({ quality: THUMB_QUALITY })
+        .toBuffer();
+      return { thumb, ...orientedDims(meta) };
+    } catch (err) {
+      if (!isAvif(buf)) throw err;
+      const png = await externalDecodeAvif(buf);
+      if (!png) {
+        throw new Error(
+          "sharp could not decode this AVIF and no external decoder " +
+            "(avifdec / ImageMagick) is available"
+        );
+      }
+      const meta = await sharp(png).metadata();
+      return {
+        thumb: await encodeThumb(png),
+        width: meta.width ?? 0,
+        height: meta.height ?? 0,
+      };
+    }
+  } finally {
+    await fs.rm(tmpIn, { force: true });
   }
 }
 
@@ -315,6 +381,16 @@ async function writeManifest(manifest) {
   await fs.writeFile(MANIFEST_FILE, json);
 }
 
+// Serialize manifest writes so concurrent workers can flush progress mid-run
+// (making a long run resumable) without ever racing on the file.
+let manifestFlush = Promise.resolve();
+function flushManifest(manifest) {
+  manifestFlush = manifestFlush
+    .then(() => writeManifest(manifest))
+    .catch(() => {});
+  return manifestFlush;
+}
+
 /* ---------------------------------- pool ---------------------------------- */
 
 /** Run `worker` over `items` with a fixed concurrency. */
@@ -378,7 +454,7 @@ async function main() {
     }
 
     try {
-      const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+      const res = await fetch(url, { headers: fetchHeaders(url) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const buf = Buffer.from(await res.arrayBuffer());
 
@@ -390,6 +466,7 @@ async function main() {
 
       manifest[url] = { width, height, thumb: name, ...(exif ? { exif } : {}) };
       generated += 1;
+      await flushManifest(manifest); // durable progress for resumable runs
       console.log(`✓ ${name}  ${width}×${height}  ${url}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -415,6 +492,7 @@ async function main() {
     }
   }
 
+  await manifestFlush; // let any in-flight periodic flush settle first
   await writeManifest(manifest);
 
   console.log(
