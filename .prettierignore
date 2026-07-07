@@ -16,3 +16,6 @@
 
 # Ignore MDX files
 *.mdx
+
+# Python has no prettier parser
+*.py

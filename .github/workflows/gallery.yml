@@ -27,16 +27,16 @@ jobs:
   thumbnails:
     name: Generate gallery thumbnails
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: "☁️ Checkout repository"
         uses: actions/checkout@v4
 
-      # Needed only to decode 10-bit AVIF that sharp's prebuilt libaom can't;
-      # sharp handles everything else. Harmless when unused.
-      - name: "🖼️ Install AVIF decoders (avifdec + ImageMagick)"
-        run: sudo apt-get update && sudo apt-get install -y libavif-bin imagemagick
+      # ffmpeg + numpy drive the HDR (PQ/HLG) → SDR tone-map in hdr_tonemap.py;
+      # libavif-bin/imagemagick decode any SDR AVIF sharp's libaom can't read.
+      - name: "🖼️ Install image toolchain"
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg python3-numpy libavif-bin imagemagick
 
       - name: "📦 Install pnpm"
         uses: pnpm/action-setup@v4
