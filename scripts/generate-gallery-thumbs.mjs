@@ -6,15 +6,19 @@
  * writes an 800px AVIF thumbnail plus a manifest. The Astro build reads only the
  * manifest — it never downloads or transcodes.
  *
- * Decode chain (some image hosts serve 10-bit AVIF that sharp's prebuilt libaom
- * cannot decode): try sharp directly, then fall back to `avifdec` / ImageMagick
- * to rasterize to PNG before sharp re-encodes the thumbnail.
+ * Per image:
+ *   - HDR (PQ/HLG) AVIF/HEIC → ffmpeg (SVT-AV1) downscales it KEEPING the HDR
+ *     signalling (10-bit, browser handles SDR/HDR display). sharp can't touch
+ *     10-bit AVIF, and a naive SDR decode of PQ looks washed-out.
+ *   - Everything else (SDR JPEG/PNG/WebP/AVIF/HEIC) → sharp, with ffmpeg /
+ *     avifdec / ImageMagick as a fallback for AVIF & HEIC sharp can't read
+ *     (for gain-map JPEG/HEIC the primary SDR base is used).
  *
  * Usage:
  *   node scripts/generate-gallery-thumbs.mjs [--prune]
  *
- * Requires Node >= 22 (native fetch). `avifdec` (libavif-bin) and/or ImageMagick
- * are only needed when a source image is an AVIF that sharp cannot decode.
+ * Requires Node >= 22 (native fetch) and ffmpeg (HDR passthrough + HEIC decode).
+ * avifdec (libavif-bin) / ImageMagick are optional extra decoder fallbacks.
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -29,11 +33,14 @@ const CONFIG_FILE = path.join(ROOT, "astro-paper.config.ts");
 const POSTS_DIR = path.join(ROOT, "src/content/posts");
 const MANIFEST_FILE = path.join(ROOT, "src/data/gallery-manifest.json");
 const THUMBS_DIR = path.join(ROOT, "public/gallery/thumbs");
-const HDR_SCRIPT = path.join(ROOT, "scripts/hdr_tonemap.py");
 
 const CONCURRENCY = Number(process.env.GALLERY_CONCURRENCY) || 4;
 const THUMB_SIZE = 800;
 const THUMB_QUALITY = 60;
+// SVT-AV1 CRF for HDR (PQ/HLG) passthrough thumbnails — kept 10-bit + HDR-tagged.
+const THUMB_HDR_CRF = 32;
+// ffprobe color_transfer values that mean the image is HDR.
+const HDR_TRANSFERS = new Set(["smpte2084", "arib-std-b67"]);
 // Present as a real browser: self-hosted image hosts (e.g. Cloudflare-fronted
 // ones) often reject non-browser User-Agents or missing Referer with a 403.
 const USER_AGENT =
@@ -143,12 +150,11 @@ async function collectUrls(domains) {
 
 /* --------------------------------- decode --------------------------------- */
 
-/** Sniff an ISOBMFF/AVIF container. */
-function isAvif(buf) {
+/** Sniff an ISOBMFF/HEIF-family container (AVIF or HEIC/HEIF) by its brands. */
+function isHeifFamily(buf) {
   if (buf.length < 12 || buf.toString("latin1", 4, 8) !== "ftyp") return false;
-  const brand = buf.toString("latin1", 8, 12);
-  if (["avif", "avis", "mif1", "miaf"].includes(brand)) return true;
-  return buf.toString("latin1", 0, 64).includes("avif");
+  const head = buf.toString("latin1", 0, 64);
+  return /avif|avis|heic|heix|hevc|hevx|mif1|msf1|miaf/.test(head);
 }
 
 /** Run a command, resolving true on exit 0 and false on error / non-zero. */
@@ -160,51 +166,113 @@ function tryExec(cmd, args) {
   });
 }
 
-/** Run a command, resolving its exit code (-1 if it couldn't be spawned). */
-function execCode(cmd, args) {
+/** Run a command capturing stdout; resolves "" on any failure. */
+function execOut(cmd, args) {
   return new Promise(resolve => {
-    const child = spawn(cmd, args, { stdio: "ignore" });
-    child.on("error", () => resolve(-1));
-    child.on("close", code => resolve(code ?? -1));
+    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "ignore"] });
+    let out = "";
+    child.stdout.on("data", d => (out += d));
+    child.on("error", () => resolve(""));
+    child.on("close", code => resolve(code === 0 ? out : ""));
   });
 }
 
-/**
- * Tone-map an HDR (PQ/HLG) image file to an sRGB PNG buffer via hdr_tonemap.py
- * (color-science-correct: PQ EOTF → BT.2390 → P3/2020→709 → sRGB OETF).
- * Returns null when the input is not HDR (script exit 3) or the tool chain
- * (python3 / numpy / ffmpeg) is unavailable — the caller then uses the SDR path.
- */
-async function hdrTonemapToPng(file) {
-  const out = `${file}.tm.png`;
+/** Probe an image's pixel dimensions and color tags via ffprobe. */
+async function ffprobeInfo(file) {
+  const out = await execOut("ffprobe", [
+    "-v",
+    "error",
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "stream=width,height,color_transfer,color_primaries,color_space",
+    "-of",
+    "json",
+    file,
+  ]);
   try {
-    const code = await execCode("python3", [HDR_SCRIPT, file, out]);
-    return code === 0 ? await fs.readFile(out) : null;
+    return JSON.parse(out).streams?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * HDR (PQ/HLG) passthrough: downscale to an 800px 10-bit AVIF that KEEPS the
+ * HDR transfer/primaries, so the browser tone-maps it for SDR displays and
+ * shows HDR on HDR displays — exactly how the original images already render in
+ * the lightbox. sharp can't touch 10-bit AVIF; ffmpeg (SVT-AV1) does the work.
+ *
+ * Returns { thumb, width, height } for HDR input, or null otherwise (not HDR,
+ * or ffmpeg/ffprobe unavailable) so the caller falls back to the SDR path.
+ */
+async function hdrPassthrough(file) {
+  const info = await ffprobeInfo(file);
+  if (!info || !HDR_TRANSFERS.has(info.color_transfer)) return null;
+
+  const out = `${file}.pq.avif`;
+  try {
+    const ok = await tryExec("ffmpeg", [
+      "-y",
+      "-loglevel",
+      "error",
+      "-i",
+      file,
+      "-vf",
+      `scale=${THUMB_SIZE}:${THUMB_SIZE}:force_original_aspect_ratio=decrease,format=yuv420p10le`,
+      "-frames:v",
+      "1",
+      "-c:v",
+      "libsvtav1",
+      "-crf",
+      String(THUMB_HDR_CRF),
+      "-preset",
+      "6",
+      // Preserve the source's HDR signalling so browsers render it correctly.
+      "-color_primaries",
+      info.color_primaries || "bt2020",
+      "-color_trc",
+      info.color_transfer,
+      "-colorspace",
+      info.color_space || "bt2020nc",
+      out,
+    ]);
+    if (!ok) return null;
+    return {
+      thumb: await fs.readFile(out),
+      width: Number(info.width) || 0,
+      height: Number(info.height) || 0,
+    };
   } finally {
     await fs.rm(out, { force: true });
   }
 }
 
-/** Rasterize an AVIF buffer to PNG via avifdec or ImageMagick; null if none work. */
-async function externalDecodeAvif(buf) {
-  const tmpIn = path.join(os.tmpdir(), `gallery-${crypto.randomUUID()}.avif`);
-  const tmpOut = `${tmpIn}.png`;
+/**
+ * Decode a HEIF-family image FILE (8-bit AVIF or HEIC/HEIF sharp can't read) to
+ * a PNG buffer. ffmpeg first (robust, decodes HEIC's HEVC + AVIF), then
+ * avifdec / ImageMagick. Returns null if none succeed.
+ */
+async function externalDecodePng(file) {
+  const out = `${file}.png`;
   try {
-    await fs.writeFile(tmpIn, buf);
     const attempts = [
-      ["avifdec", ["--jobs", "all", tmpIn, tmpOut]],
-      ["magick", [tmpIn, tmpOut]],
-      ["convert", [tmpIn, tmpOut]],
+      [
+        "ffmpeg",
+        ["-y", "-loglevel", "error", "-i", file, "-frames:v", "1", out],
+      ],
+      ["avifdec", ["--jobs", "all", file, out]],
+      ["magick", [file, out]],
+      ["convert", [file, out]],
     ];
     for (const [cmd, args] of attempts) {
       if (await tryExec(cmd, args)) {
-        return await fs.readFile(tmpOut);
+        return await fs.readFile(out);
       }
     }
     return null;
   } finally {
-    await fs.rm(tmpIn, { force: true });
-    await fs.rm(tmpOut, { force: true });
+    await fs.rm(out, { force: true });
   }
 }
 
@@ -227,27 +295,20 @@ function encodeThumb(input) {
 /**
  * Produce a thumbnail buffer + original oriented dimensions.
  *
- * 1. HDR (PQ/HLG) inputs are tone-mapped to sRGB by hdr_tonemap.py — sharp's
- *    prebuilt libaom can't decode 10-bit AVIF anyway, and a naive decode of PQ
- *    looks washed-out/gray without tone mapping.
- * 2. Otherwise (SDR JPEG/PNG/WebP/8-bit AVIF): sharp directly, with avifdec /
- *    ImageMagick as a fallback for AVIF sharp can't read.
+ * 1. HDR (PQ/HLG) inputs pass through as downscaled 10-bit HDR AVIF (the
+ *    browser handles tone-mapping for SDR displays) — sharp can't touch 10-bit
+ *    AVIF, and a naive SDR decode of PQ looks washed-out/gray.
+ * 2. Otherwise (SDR JPEG/PNG/WebP/8-bit AVIF/HEIC): sharp directly, with
+ *    ffmpeg / avifdec / ImageMagick as a fallback for AVIF & HEIC sharp can't
+ *    read. For gain-map JPEG/HEIC this uses the SDR base (the primary image).
  */
 async function makeThumb(buf) {
   const tmpIn = path.join(os.tmpdir(), `gallery-src-${crypto.randomUUID()}`);
   try {
     await fs.writeFile(tmpIn, buf);
 
-    const hdrPng = await hdrTonemapToPng(tmpIn);
-    if (hdrPng) {
-      // The tone-mapped PNG is already display-oriented sRGB.
-      const meta = await sharp(hdrPng).metadata();
-      return {
-        thumb: await encodeThumb(hdrPng),
-        width: meta.width ?? 0,
-        height: meta.height ?? 0,
-      };
-    }
+    const hdr = await hdrPassthrough(tmpIn);
+    if (hdr) return hdr;
 
     // SDR path.
     try {
@@ -262,12 +323,14 @@ async function makeThumb(buf) {
         .toBuffer();
       return { thumb, ...orientedDims(meta) };
     } catch (err) {
-      if (!isAvif(buf)) throw err;
-      const png = await externalDecodeAvif(buf);
+      // sharp can't read some AVIF (10-bit) and no HEIC at all — decode those
+      // externally. Non-HEIF formats sharp already rejected for a real reason.
+      if (!isHeifFamily(buf)) throw err;
+      const png = await externalDecodePng(tmpIn);
       if (!png) {
         throw new Error(
-          "sharp could not decode this AVIF and no external decoder " +
-            "(avifdec / ImageMagick) is available"
+          "sharp could not decode this image and no external decoder " +
+            "(ffmpeg / avifdec / ImageMagick) is available"
         );
       }
       const meta = await sharp(png).metadata();
