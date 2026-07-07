@@ -33,10 +33,10 @@ jobs:
       - name: "☁️ Checkout repository"
         uses: actions/checkout@v4
 
-      # ffmpeg + numpy drive the HDR (PQ/HLG) → SDR tone-map in hdr_tonemap.py;
-      # libavif-bin/imagemagick decode any SDR AVIF sharp's libaom can't read.
+      # ffmpeg downscales HDR (PQ/HLG) AVIF keeping it HDR-tagged and decodes
+      # HEIC; libavif-bin/imagemagick are extra AVIF/HEIC decoder fallbacks.
       - name: "🖼️ Install image toolchain"
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg python3-numpy libavif-bin imagemagick
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg libavif-bin imagemagick
 
       - name: "📦 Install pnpm"
         uses: pnpm/action-setup@v4
