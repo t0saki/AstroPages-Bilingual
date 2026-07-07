@@ -7,6 +7,7 @@ export default {
     tags: "Tags",
     about: "About",
     archives: "Archives",
+    gallery: "Gallery",
     search: "Search",
   },
   post: {
@@ -50,6 +51,10 @@ export default {
     archivesTitle: "Archives",
     archivesDesc: "All the articles I've archived.",
 
+    galleryTitle: "Gallery",
+    galleryDesc: "Photos from my travels, grouped by story.",
+    galleryEmpty: "No photos yet.",
+
     searchTitle: "Search",
     searchDesc: "Search any article ...",
   },
@@ -62,6 +67,11 @@ export default {
     noResults: "No results found",
     goToPreviousPage: "Go to previous page",
     goToNextPage: "Go to next page",
+    lightboxClose: "Close",
+    lightboxZoom: "Zoom in/out",
+    lightboxPrev: "Previous",
+    lightboxNext: "Next",
+    lightboxError: "The image could not be loaded.",
   },
   notFound: {
     title: "404 Not Found",

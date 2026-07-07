@@ -22,6 +22,7 @@
 - **中文字体**：内置思源屏显臻宋（`@chinese-fonts/sypxzs`）。
 - **静态全文搜索**：基于 [Pagefind](https://pagefind.app/)，按语言分别索引。
 - **数学公式**：Markdown 内嵌 LaTeX 公式，构建期由 [KaTeX](https://katex.org/) 渲染（remark-math + rehype-katex），无需客户端 JS。
+- **照片相册**：`/gallery` 页汇集设置了 `gallery: true` 的文章中的图床照片，按文章分组，悬停显示 EXIF（机型/镜头/参数），点击进 [PhotoSwipe](https://photoswipe.com/) 灯箱。缩略图与 EXIF 由脚本预生成入库（见 [照片相册](#-照片相册)）。
 - **SEO 优化**：预配置多语言 Meta 标签、Sitemap 与 OpenGraph。
 
 ## 🛠️ 快速开始
@@ -120,6 +121,58 @@ pnpm dev
 在 `src/content/posts/zh/` 或 `src/content/posts/en/` 中直接创建 Markdown/MDX 文件即可。**目录前缀即语言**：`zh/` 下的文章生成 `/posts/<slug>`，`en/` 下的文章生成 `/en/posts/<slug>`。两种语言使用相同的 `slug` 即可在语言切换时一一对应。
 
 （在 `keystatic-workers` 分支上，也可以通过 `/keystatic` 可视化编辑。）
+
+## 📸 照片相册
+
+`/gallery` 页面把文章正文里的图床照片汇集成相册。它**不依赖单独维护的图片清单**——照片直接来自游记正文的 `![alt](url)` 外链。
+
+### 1. 开启与配置
+
+在 `astro-paper.config.ts` 中开启，并列出允许收集的图床域名（白名单）：
+
+```ts
+features: {
+  gallery: {
+    enabled: true,
+    imageDomains: ["img.example.com"], // 只有这些域名下的图片会被收集
+  },
+},
+```
+
+给想要进相册的文章 frontmatter 加上 `gallery: true`。构建时会从该文正文提取白名单域名下的图片，`alt` 作为图注；相册按文章分组、时间倒序，标题链接回原文。中英文各自独立提取。
+
+```yaml
+---
+title: 我的游记
+pubDatetime: 2026-06-20T09:00:00Z
+description: ……
+gallery: true
+---
+```
+
+### 2. 生成缩略图与 EXIF
+
+网格显示的是**提交进仓库的缩略图**（`public/gallery/thumbs/`，800px AVIF），配套一份 `src/data/gallery-manifest.json`（记录尺寸与隐私安全的 EXIF 子集，**从不含 GPS**）。站点构建自身零下载、零转码，只读 manifest。
+
+本地生成：
+
+```bash
+node scripts/generate-gallery-thumbs.mjs          # 增量：已有缩略图会跳过
+node scripts/generate-gallery-thumbs.mjs --prune  # 顺便清理不再被引用的缩略图
+```
+
+脚本用 `sharp` 编码缩略图，`exifr` 提取 EXIF。若图床是 `sharp` 预编译版无法解码的 10-bit AVIF，会回退到 `avifdec`（libavif-bin）/ ImageMagick 解码，故这两者仅在需要时安装。
+
+### 3. 自动化与"双构建"
+
+`.github/workflows/gallery.yml` 会在 `src/content/posts/**` 变更 push 到 `main` 时自动跑上面的脚本，并把生成的缩略图 + manifest 以 bot 提交推回 `main`。因此新增照片后会经历两次构建：
+
+1. **内容 push → 第一次构建**：此时缩略图尚未生成，缺图的照片临时**回退加载原图**；
+2. **bot 提交缩略图 → 第二次构建**：补齐缩略图，网格改用仓库里的轻量 AVIF。
+
+中间通常只有几分钟的"回退窗口"。该流程零 secret、不触碰部署配置（GITHUB_TOKEN 的推送不会递归触发 Actions，且推送路径不匹配 `paths` 过滤）。若 `main` 开启了分支保护，需允许 Actions 绕过或改用 PAT。
+
+> v1 仅识别 Markdown 图片语法 `![](…)`；MDX 里的 `<img>` 或引用式图片暂不收集。
 
 ## 🧩 分支说明
 

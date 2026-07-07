@@ -7,6 +7,7 @@ export default {
     tags: "标签",
     about: "关于",
     archives: "归档",
+    gallery: "相册",
     search: "搜索",
   },
   post: {
@@ -50,6 +51,10 @@ export default {
     archivesTitle: "归档",
     archivesDesc: "我归档的所有文章。",
 
+    galleryTitle: "相册",
+    galleryDesc: "旅途中的照片，按游记分组。",
+    galleryEmpty: "还没有照片。",
+
     searchTitle: "搜索",
     searchDesc: "搜索任意文章……",
   },
@@ -62,6 +67,11 @@ export default {
     noResults: "未找到结果",
     goToPreviousPage: "前往上一页",
     goToNextPage: "前往下一页",
+    lightboxClose: "关闭",
+    lightboxZoom: "缩放",
+    lightboxPrev: "上一张",
+    lightboxNext: "下一张",
+    lightboxError: "图片加载失败。",
   },
   notFound: {
     title: "404 未找到",

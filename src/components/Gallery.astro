@@ -1,0 +1,283 @@
+---
+import "photoswipe/style.css";
+import type { GalleryAlbum } from "@/types/gallery";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+interface Props {
+  albums: GalleryAlbum[];
+}
+
+const { albums } = Astro.props;
+
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+const dateFormatter = new Intl.DateTimeFormat(locale, {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+// Localized PhotoSwipe button titles / error message, read by the client script.
+const pswpStrings = JSON.stringify({
+  close: t.a11y.lightboxClose,
+  zoom: t.a11y.lightboxZoom,
+  prev: t.a11y.lightboxPrev,
+  next: t.a11y.lightboxNext,
+  error: t.a11y.lightboxError,
+});
+---
+
+{
+  albums.length === 0 ? (
+    <p class="text-muted-foreground py-16 text-center italic">
+      {t.pages.galleryEmpty}
+    </p>
+  ) : (
+    <div class="gallery" data-pswp-strings={pswpStrings}>
+      {albums.map(album => (
+        <section class="mb-12">
+          <div class="mb-3 flex items-baseline justify-between gap-4">
+            <h2 class="text-lg font-medium">
+              <a
+                href={album.post.url}
+                class="text-foreground hover:text-accent underline decoration-dashed decoration-1 underline-offset-4 transition-colors"
+              >
+                {album.post.title}
+              </a>
+            </h2>
+            <time
+              class="text-muted-foreground shrink-0 text-sm"
+              datetime={album.post.date.toISOString()}
+            >
+              {dateFormatter.format(album.post.date)}
+            </time>
+          </div>
+          <div class="g-grid">
+            {album.photos.map(photo => (
+              <a
+                class="g-item"
+                href={photo.src}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ "--ar": photo.width / photo.height }}
+                data-pswp-width={photo.width}
+                data-pswp-height={photo.height}
+                data-exif-camera={photo.camera ?? ""}
+                data-exif-settings={photo.settings ?? ""}
+              >
+                <img
+                  src={photo.thumbSrc}
+                  alt={photo.alt}
+                  width={photo.width}
+                  height={photo.height}
+                  loading="lazy"
+                  decoding="async"
+                />
+                {(photo.alt || photo.camera || photo.settings) && (
+                  <div class="g-overlay" aria-hidden="true">
+                    {photo.alt && <span class="g-caption">{photo.alt}</span>}
+                    {photo.camera && <span class="g-meta">{photo.camera}</span>}
+                    {photo.settings && (
+                      <span class="g-meta">{photo.settings}</span>
+                    )}
+                  </div>
+                )}
+              </a>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+<style>
+  /* CSS-only justified grid: each item grows in proportion to its aspect ratio
+     so rows share a common height; the ::after spacer keeps the last (partial)
+     row left-aligned instead of stretching its items across the full width. */
+  .g-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+  .g-grid::after {
+    content: "";
+    flex-grow: 1000000;
+  }
+  .g-item {
+    position: relative;
+    aspect-ratio: var(--ar);
+    flex-grow: calc(var(--ar) * 100);
+    flex-basis: calc(var(--ar) * 11rem);
+    overflow: hidden;
+    border-radius: 0.25rem;
+    /* Doubles as a loading placeholder before the thumbnail paints. */
+    background-color: var(--color-muted);
+  }
+  .g-item img {
+    display: block;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+
+  .g-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.125rem;
+    padding: 0.5rem 0.625rem;
+    background: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0.72) 0%,
+      rgb(0 0 0 / 0.35) 35%,
+      transparent 70%
+    );
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  /* Reveal on hover only for real pointers; touch devices rely on the lightbox. */
+  @media (hover: hover) and (pointer: fine) {
+    .g-item:hover .g-overlay {
+      opacity: 1;
+    }
+  }
+  /* Keyboard parity: focusing an item shows its overlay + a visible outline. */
+  .g-item:focus-visible {
+    outline: 2px dashed var(--color-accent);
+    outline-offset: 2px;
+  }
+  .g-item:focus-visible .g-overlay {
+    opacity: 1;
+  }
+  .g-caption {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+  .g-meta {
+    overflow: hidden;
+    font-size: 0.6875rem;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.75;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+</style>
+
+<style is:global>
+  /* PhotoSwipe mounts its root on <body>, outside this component's scope,
+     so the lightbox caption must be styled globally. */
+  .pswp-gallery-caption {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
+    color: #fff;
+    text-align: center;
+    pointer-events: none;
+  }
+  .pswp-gallery-caption:empty {
+    display: none;
+  }
+  .pswp-gallery-caption .cap-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .pswp-gallery-caption .cap-meta {
+    font-size: 0.78rem;
+    opacity: 0.8;
+  }
+</style>
+
+<script>
+  import PhotoSwipeLightbox from "photoswipe/lightbox";
+
+  let lightbox: PhotoSwipeLightbox | null = null;
+
+  function destroyLightbox() {
+    lightbox?.destroy();
+    lightbox = null;
+  }
+
+  function initGallery() {
+    // Re-init cleanly across view transitions.
+    destroyLightbox();
+
+    if (!document.querySelector(".g-grid")) return;
+
+    const root = document.querySelector<HTMLElement>("[data-pswp-strings]");
+    let s: Record<string, string> = {};
+    try {
+      s = JSON.parse(root?.dataset.pswpStrings ?? "{}");
+    } catch {
+      s = {};
+    }
+
+    lightbox = new PhotoSwipeLightbox({
+      // Each `.g-grid` is an independent album; arrows stay within one album.
+      gallery: ".g-grid",
+      children: "a.g-item",
+      pswpModule: () => import("photoswipe"),
+      // Fully opaque backdrop for an immersive, distraction-free view.
+      bgOpacity: 1,
+      closeTitle: s.close,
+      zoomTitle: s.zoom,
+      arrowPrevTitle: s.prev,
+      arrowNextTitle: s.next,
+      errorMsg: s.error,
+    });
+
+    lightbox.on("uiRegister", () => {
+      lightbox?.pswp?.ui?.registerElement({
+        name: "gallery-caption",
+        order: 9,
+        isButton: false,
+        appendTo: "root",
+        onInit: (el, pswp) => {
+          el.className = "pswp-gallery-caption";
+          const update = () => {
+            const anchor = pswp.currSlide?.data?.element as
+              | HTMLElement
+              | undefined;
+            el.replaceChildren();
+            if (!anchor) return;
+            const alt = anchor.querySelector("img")?.getAttribute("alt") ?? "";
+            const lines: Array<[string, string]> = [
+              [alt, "cap-title"],
+              [anchor.dataset.exifCamera ?? "", "cap-meta"],
+              [anchor.dataset.exifSettings ?? "", "cap-meta"],
+            ];
+            for (const [text, cls] of lines) {
+              if (!text) continue;
+              const span = document.createElement("span");
+              span.className = cls;
+              span.textContent = text; // textContent → XSS-safe
+              el.appendChild(span);
+            }
+          };
+          pswp.on("change", update);
+          update();
+        },
+      });
+    });
+
+    lightbox.init();
+  }
+
+  document.addEventListener("astro:page-load", initGallery);
+  document.addEventListener("astro:before-swap", destroyLightbox);
+</script>

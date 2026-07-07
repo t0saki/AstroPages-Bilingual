@@ -32,6 +32,10 @@ export default defineAstroPaperConfig({
       url: "https://github.com/t0saki/AstroPages-Bilingual/edit/main/",
     },
     search: "pagefind",
+    gallery: {
+      enabled: true,
+      imageDomains: ["upload.wikimedia.org"],
+    },
   },
   socials: [
     { name: "github", url: "https://github.com/t0saki/AstroPages-Bilingual" },

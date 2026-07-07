@@ -1,0 +1,41 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { getCollection } from "astro:content";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import Main from "@/components/Main.astro";
+import Footer from "@/components/Footer.astro";
+import Gallery from "@/components/Gallery.astro";
+import { getGalleryAlbums } from "@/utils/getGalleryAlbums";
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+const locale = Astro.currentLocale ?? config.site.lang;
+
+// Redirect to 404 page if the gallery feature is disabled.
+const notFoundUrl = getRelativeLocaleUrl(locale, "404");
+if (!config.features.gallery.enabled && notFoundUrl) {
+  return Astro.rewrite(notFoundUrl);
+}
+
+const t = useTranslations(locale);
+
+const posts = await getCollection("posts", ({ id }) => id.startsWith("zh/"));
+const albums = getGalleryAlbums(posts);
+---
+
+<Layout
+  title={`${t.pages.galleryTitle} | ${config.site.title}`}
+  description={t.pages.galleryDesc}
+>
+  <Header />
+
+  <Breadcrumb />
+
+  <Main pageTitle={t.pages.galleryTitle} pageDesc={t.pages.galleryDesc}>
+    <Gallery albums={albums} />
+  </Main>
+
+  <Footer />
+</Layout>

@@ -3,6 +3,7 @@ import { getRelativeLocaleUrl } from "astro:i18n";
 import IconUnderline from "@/assets/icons/IconUnderline.svg";
 import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
 import IconArchive from "@/assets/icons/IconArchive.svg";
+import IconPhoto from "@/assets/icons/IconPhoto.svg";
 import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
@@ -99,6 +100,30 @@ const isActive = (path: string) => {
             {t.nav.about}
           </a>
         </li>
+        {
+          features.gallery.enabled && (
+            <li class="col-span-2">
+              <LinkButton
+                href={getRelativeLocaleUrl(locale, "gallery")}
+                class:list={[
+                  "focus-outline flex size-full justify-center p-3 sm:relative sm:size-8 sm:p-0",
+                  { "active-nav": isActive("/gallery") },
+                ]}
+                title={t.nav.gallery}
+                aria-label={t.nav.gallery}
+              >
+                <IconPhoto class="hidden sm:absolute sm:top-1/2 sm:left-1/2 sm:block sm:size-6 sm:-translate-x-1/2 sm:-translate-y-1/2" />
+                <span class="sm:sr-only">{t.nav.gallery}</span>
+                {isActive("/gallery") && (
+                  <IconUnderline
+                    aria-hidden="true"
+                    class="scale-125 max-sm:hidden sm:absolute sm:bottom-0 sm:w-6"
+                  />
+                )}
+              </LinkButton>
+            </li>
+          )
+        }
         {
           features.showArchives && (
             <li class="col-span-2">
