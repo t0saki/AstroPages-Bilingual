@@ -9,6 +9,7 @@ import { getPostSlug, getPostUrl } from "@/utils/getPostPaths";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { slugifyStr } from "@/utils/slugify";
 import { toTransitionName } from "@/utils/toTransitionName";
+import { getArticleImageInfo } from "@/utils/getGalleryAlbums";
 import EditPost from "./_components/EditPost.astro";
 import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
@@ -72,6 +73,10 @@ const {
 } = post.data;
 
 const { Content } = await render(post);
+
+// URL → formatted EXIF lines for photos in the gallery manifest; read by the
+// inline script below to build the hover overlay + lightbox caption.
+const imageInfo = getArticleImageInfo(post.body ?? "");
 
 let ogImageUrl: string | undefined;
 
@@ -139,6 +144,9 @@ const ogImage = ogImageUrl
         "app-prose max-w-app",
         "prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg)",
       ]}
+      data-image-info={Object.keys(imageInfo).length
+        ? JSON.stringify(imageInfo)
+        : undefined}
     >
       <Content />
     </article>
@@ -260,6 +268,60 @@ const ogImage = ogImageUrl
   }
   attachCopyButtons();
 
+  /**
+   * Gallery-style hover overlay (caption + EXIF) for article photos listed in
+   * the gallery manifest (see data-image-info on #article); other images are
+   * left untouched. EXIF lines are mirrored onto the img's dataset so the
+   * lightbox below can show the same caption.
+   */
+  function initImageInfo() {
+    const article = document.getElementById("article");
+    if (!article) return;
+
+    let infoMap = {};
+    try {
+      infoMap = JSON.parse(article.dataset.imageInfo ?? "{}");
+    } catch {
+      infoMap = {};
+    }
+    if (Object.keys(infoMap).length === 0) return;
+
+    // Defer DOM restructuring for the same LCP reason as initLightbox below.
+    requestAnimationFrame(() => {
+      for (const image of Array.from(article.querySelectorAll("img"))) {
+        if (image.closest("a") || image.closest(".img-info")) continue;
+        const info = infoMap[image.getAttribute("src")];
+        if (!info) continue;
+
+        image.dataset.photo = "1";
+        if (info.camera) image.dataset.exifCamera = info.camera;
+        if (info.settings) image.dataset.exifSettings = info.settings;
+
+        const lines = [
+          [image.alt, "img-info-caption"],
+          [info.camera, "img-info-meta"],
+          [info.settings, "img-info-meta"],
+        ].filter(line => line[0]);
+        if (lines.length === 0) continue;
+
+        const wrap = document.createElement("span");
+        wrap.className = "img-info";
+        const overlay = document.createElement("span");
+        overlay.className = "img-info-overlay";
+        overlay.setAttribute("aria-hidden", "true");
+        for (const [text, cls] of lines) {
+          const span = document.createElement("span");
+          span.className = cls;
+          span.textContent = text;
+          overlay.appendChild(span);
+        }
+        image.replaceWith(wrap);
+        wrap.append(image, overlay);
+      }
+    });
+  }
+  initImageInfo();
+
   /** Accessible image lightbox for article images. */
   function initLightbox() {
     const article = document.getElementById("article");
@@ -316,6 +378,29 @@ const ogImage = ogImageUrl
         "max-h-[90dvh] max-w-[90dvw] cursor-default object-contain";
 
       overlay.append(closeButton, image);
+
+      // Same caption + EXIF block as the gallery lightbox, for photos
+      // decorated by initImageInfo (touch devices have no hover overlay).
+      if (trigger?.dataset?.photo) {
+        const lines = [
+          [alt, "cap-title"],
+          [trigger.dataset.exifCamera, "cap-meta"],
+          [trigger.dataset.exifSettings, "cap-meta"],
+        ].filter(line => line[0]);
+        if (lines.length > 0) {
+          const caption = document.createElement("div");
+          caption.className = "lightbox-caption";
+          caption.setAttribute("aria-hidden", "true");
+          for (const [text, cls] of lines) {
+            const span = document.createElement("span");
+            span.className = cls;
+            span.textContent = text;
+            caption.appendChild(span);
+          }
+          overlay.appendChild(caption);
+        }
+      }
+
       overlay.addEventListener("click", e => {
         if (e.target === overlay && currentScale <= 1) close();
       });

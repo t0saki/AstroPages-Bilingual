@@ -108,6 +108,30 @@ function buildPhoto(url: string, alt: string): GalleryPhoto {
   };
 }
 
+/**
+ * Hover-info map for one post body: image URL → formatted EXIF display lines.
+ * Only images present in the gallery manifest get an entry (an empty one when
+ * the photo carries no EXIF) — post pages use entry presence to decide which
+ * article images receive the gallery-style hover overlay.
+ */
+export function getArticleImageInfo(
+  body: string
+): Record<string, { camera?: string; settings?: string }> {
+  if (!config.features.gallery.enabled) return {};
+  const info: Record<string, { camera?: string; settings?: string }> = {};
+  for (const match of body.matchAll(IMAGE_RE)) {
+    let url = match[2]?.trim() ?? "";
+    if (url.startsWith("<") && url.endsWith(">")) url = url.slice(1, -1);
+    const entry = manifest[url];
+    if (!entry || url in info) continue;
+    info[url] = {
+      camera: entry.exif ? formatCameraLine(entry.exif) : undefined,
+      settings: entry.exif ? formatSettingsLine(entry.exif) : undefined,
+    };
+  }
+  return info;
+}
+
 /** Extract whitelisted images from a post body, de-duplicated, in document order. */
 function extractPhotos(body: string, domains: Set<string>): GalleryPhoto[] {
   const photos: GalleryPhoto[] = [];

@@ -37,3 +37,88 @@
 :target {
   scroll-margin-block: 1rem;
 }
+
+/* ===== Article image hover info (caption + EXIF) =====
+   Wrapper + overlay are created client-side by the post page's initImageInfo
+   for photos found in the gallery manifest; mirrors the gallery grid overlay. */
+.app-prose .img-info {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  /* Transplanted from the typography plugin's img margins so the wrapper
+     swap doesn't shift layout. */
+  margin-block: 2em;
+  margin-inline: auto;
+}
+.app-prose .img-info > img {
+  margin-block: 0;
+}
+.img-info-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.125rem;
+  padding: 0.5rem 0.625rem;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.72) 0%,
+    rgb(0 0 0 / 0.35) 35%,
+    transparent 70%
+  );
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+/* Reveal on hover only for real pointers; touch devices get the same info in
+   the lightbox caption instead. */
+@media (hover: hover) and (pointer: fine) {
+  .img-info:hover .img-info-overlay {
+    opacity: 1;
+  }
+}
+.img-info:has(img:focus-visible) .img-info-overlay {
+  opacity: 1;
+}
+.img-info-caption {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+.img-info-meta {
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+/* Caption bar inside the article image lightbox (created client-side). */
+.lightbox-caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
+}
+.lightbox-caption .cap-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.lightbox-caption .cap-meta {
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
