@@ -52,7 +52,7 @@ export default {
     archivesDesc: "All the articles I've archived.",
 
     galleryTitle: "Gallery",
-    galleryDesc: "Photos from my travels, grouped by story.",
+    galleryDesc: "Moments the light remembers.",
     galleryEmpty: "No photos yet.",
 
     searchTitle: "Search",
