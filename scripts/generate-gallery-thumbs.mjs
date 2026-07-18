@@ -157,6 +157,69 @@ function isHeifFamily(buf) {
   return /avif|avis|heic|heix|hevc|hevx|mif1|msf1|miaf/.test(head);
 }
 
+/**
+ * Read the HEIF `irot` rotation + `ispe` coded size from an AVIF/HEIC buffer.
+ *
+ * Browsers orient AVIF/HEIC by the container's irot/imir properties (EXIF
+ * Orientation is ignored for these formats), so thumbnails must apply the same
+ * rotation. Decoders disagree here — libheif bakes irot in, ffmpeg/avifdec
+ * leave it to the caller — which is exactly how landscape thumbnails of
+ * portrait shots slipped through. Returns `rotationCw` (degrees clockwise a
+ * renderer must apply) and the coded (pre-rotation) dimensions, or null when
+ * the boxes can't be found. Heuristic on multi-image files: any irot in ipco
+ * counts, and the largest ispe is taken as the primary image's size.
+ */
+function heifDisplayProps(buf) {
+  function* boxes(start, end) {
+    let off = start;
+    while (off + 8 <= end) {
+      let size = buf.readUInt32BE(off);
+      const type = buf.toString("latin1", off + 4, off + 8);
+      let header = 8;
+      if (size === 1) {
+        if (off + 16 > end) return;
+        size = Number(buf.readBigUInt64BE(off + 8));
+        header = 16;
+      } else if (size === 0) {
+        size = end - off;
+      }
+      if (size < header || off + size > end) return;
+      yield { type, start: off + header, end: off + size };
+      off += size;
+    }
+  }
+  const find = (type, start, end) => {
+    for (const box of boxes(start, end)) if (box.type === type) return box;
+    return null;
+  };
+  const meta = find("meta", 0, buf.length);
+  if (!meta) return null;
+  // `meta` is a FullBox: 4 bytes of version/flags before its children.
+  const iprp = find("iprp", meta.start + 4, meta.end);
+  const ipco = iprp && find("ipco", iprp.start, iprp.end);
+  if (!ipco) return null;
+  let rotationCcw = 0;
+  let codedWidth = 0;
+  let codedHeight = 0;
+  for (const box of boxes(ipco.start, ipco.end)) {
+    if (box.type === "irot" && box.end - box.start >= 1) {
+      rotationCcw = buf[box.start] & 3; // 90° anti-clockwise units
+    } else if (box.type === "ispe" && box.end - box.start >= 12) {
+      const width = buf.readUInt32BE(box.start + 4);
+      const height = buf.readUInt32BE(box.start + 8);
+      if (width * height > codedWidth * codedHeight) {
+        codedWidth = width;
+        codedHeight = height;
+      }
+    }
+  }
+  return {
+    rotationCw: (360 - rotationCcw * 90) % 360,
+    codedWidth,
+    codedHeight,
+  };
+}
+
 /** Run a command, resolving true on exit 0 and false on error / non-zero. */
 function tryExec(cmd, args) {
   return new Promise(resolve => {
@@ -206,9 +269,18 @@ async function ffprobeInfo(file) {
  * Returns { thumb, width, height } for HDR input, or null otherwise (not HDR,
  * or ffmpeg/ffprobe unavailable) so the caller falls back to the SDR path.
  */
-async function hdrPassthrough(file) {
+async function hdrPassthrough(file, rotationCw = 0) {
   const info = await ffprobeInfo(file);
   if (!info || !HDR_TRANSFERS.has(info.color_transfer)) return null;
+
+  // Bake the irot display rotation into the pixels ourselves. -noautorotate
+  // keeps ffmpeg from also applying it (newer ffmpeg auto-rotates from the
+  // demuxer's display matrix, older versions don't — pin the behavior).
+  const transpose =
+    { 90: "transpose=1,", 180: "hflip,vflip,", 270: "transpose=2," }[
+      rotationCw
+    ] ?? "";
+  const swap = rotationCw % 180 === 90;
 
   const out = `${file}.pq.avif`;
   try {
@@ -216,10 +288,11 @@ async function hdrPassthrough(file) {
       "-y",
       "-loglevel",
       "error",
+      "-noautorotate",
       "-i",
       file,
       "-vf",
-      `scale=${THUMB_SIZE}:${THUMB_SIZE}:force_original_aspect_ratio=decrease,format=yuv420p10le`,
+      `${transpose}scale=${THUMB_SIZE}:${THUMB_SIZE}:force_original_aspect_ratio=decrease,format=yuv420p10le`,
       "-frames:v",
       "1",
       "-c:v",
@@ -240,8 +313,8 @@ async function hdrPassthrough(file) {
     if (!ok) return null;
     return {
       thumb: await fs.readFile(out),
-      width: Number(info.width) || 0,
-      height: Number(info.height) || 0,
+      width: Number(swap ? info.height : info.width) || 0,
+      height: Number(swap ? info.width : info.height) || 0,
     };
   } finally {
     await fs.rm(out, { force: true });
@@ -251,7 +324,11 @@ async function hdrPassthrough(file) {
 /**
  * Decode a HEIF-family image FILE (8-bit AVIF or HEIC/HEIF sharp can't read) to
  * a PNG buffer. ffmpeg first (robust, decodes HEIC's HEVC + AVIF), then
- * avifdec / ImageMagick. Returns null if none succeed.
+ * avifdec / ImageMagick. Returns { png, decoder } or null if none succeed.
+ *
+ * None of these are trusted to apply the container's irot rotation: ffmpeg is
+ * pinned with -noautorotate (its default varies by version), and the caller
+ * re-applies rotation itself based on the decoded dimensions.
  */
 async function externalDecodePng(file) {
   const out = `${file}.png`;
@@ -259,7 +336,17 @@ async function externalDecodePng(file) {
     const attempts = [
       [
         "ffmpeg",
-        ["-y", "-loglevel", "error", "-i", file, "-frames:v", "1", out],
+        [
+          "-y",
+          "-loglevel",
+          "error",
+          "-noautorotate",
+          "-i",
+          file,
+          "-frames:v",
+          "1",
+          out,
+        ],
       ],
       ["avifdec", ["--jobs", "all", file, out]],
       ["magick", [file, out]],
@@ -267,7 +354,7 @@ async function externalDecodePng(file) {
     ];
     for (const [cmd, args] of attempts) {
       if (await tryExec(cmd, args)) {
-        return await fs.readFile(out);
+        return { png: await fs.readFile(out), decoder: cmd };
       }
     }
     return null;
@@ -276,20 +363,29 @@ async function externalDecodePng(file) {
   }
 }
 
-/** Oriented (display) dimensions, accounting for EXIF orientation. */
-function orientedDims(meta) {
-  const o = meta.orientation ?? 1;
-  return o >= 5
-    ? { width: meta.height ?? 0, height: meta.width ?? 0 }
-    : { width: meta.width ?? 0, height: meta.height ?? 0 };
-}
-
-/** Resize an already-decoded (oriented) PNG/sharp input to the AVIF thumbnail. */
+/** Resize an already-oriented raster to the AVIF thumbnail. The input must
+ *  carry no rotation state: sharp materializes a pending .rotate() into BOTH
+ *  rotated pixels and an irot property when saving AVIF (double rotation in
+ *  browsers), so rotation is always baked into a clean PNG first. */
 function encodeThumb(input) {
   return sharp(input)
     .resize(THUMB_SIZE, THUMB_SIZE, { fit: "inside", withoutEnlargement: true })
     .avif({ quality: THUMB_QUALITY })
     .toBuffer();
+}
+
+/** Bake a rotation into clean pixels: returns { png, width, height } with the
+ *  rotation applied and no orientation/irot metadata left behind (PNG output
+ *  materializes the rotation and can carry no orientation state). Pass
+ *  rotateCw = null to auto-orient by EXIF instead of an explicit angle. */
+async function bakeRotation(input, rotateCw) {
+  const pipeline = sharp(input, { failOn: "none" });
+  const { data, info } = await (
+    rotateCw === null ? pipeline.rotate() : pipeline.rotate(rotateCw)
+  )
+    .png()
+    .toBuffer({ resolveWithObject: true });
+  return { png: data, width: info.width, height: info.height };
 }
 
 /**
@@ -307,35 +403,89 @@ async function makeThumb(buf) {
   try {
     await fs.writeFile(tmpIn, buf);
 
-    const hdr = await hdrPassthrough(tmpIn);
+    // Browsers orient AVIF/HEIC by the container's irot (EXIF Orientation is
+    // ignored there) — every decode path below must end up matching that.
+    const heif = isHeifFamily(buf) ? heifDisplayProps(buf) : null;
+    const rotationCw = heif?.rotationCw ?? 0;
+
+    const hdr = await hdrPassthrough(tmpIn, rotationCw);
     if (hdr) return hdr;
 
     // SDR path.
     try {
-      const meta = await sharp(buf, { failOn: "none" }).rotate().metadata();
-      const thumb = await sharp(buf, { failOn: "none" })
-        .rotate()
-        .resize(THUMB_SIZE, THUMB_SIZE, {
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .avif({ quality: THUMB_QUALITY })
-        .toBuffer();
-      return { thumb, ...orientedDims(meta) };
+      const meta = await sharp(buf, { failOn: "none" }).metadata();
+      const exifOriented = !heif && (meta.orientation ?? 1) !== 1;
+
+      if (!rotationCw && !exifOriented) {
+        // No rotation in play — single pass. (metadata() alone doesn't prove
+        // the pixels are decodable; toBuffer() below is what throws for AVIFs
+        // sharp can't read, falling through to the external decoders.)
+        const thumb = await encodeThumb(buf);
+        return {
+          thumb,
+          width: meta.width ?? 0,
+          height: meta.height ?? 0,
+        };
+      }
+
+      // Rotation involved: bake it into a clean PNG first, then encode.
+      // Never in one pipeline — see encodeThumb. For HEIF the pixel decode
+      // may or may not have irot applied (sharp's metadata reports display
+      // dims either way and can't be trusted); probe the real pixel
+      // orientation with a tiny decode and bake only what's missing.
+      let bake = null; // null → auto-orient by EXIF (the non-HEIF case)
+      if (heif) {
+        const probe = await sharp(buf, { failOn: "none" })
+          .resize(16, 16, { fit: "inside" })
+          .toBuffer({ resolveWithObject: true });
+        const pixelsAreCoded =
+          probe.info.width > probe.info.height ===
+          heif.codedWidth > heif.codedHeight;
+        // Squares and 180° are dimension-ambiguous; sharp 0.34.5 is observed
+        // NOT to apply irot to pixels, so treat "ambiguous" as unapplied.
+        bake = pixelsAreCoded ? rotationCw : 0;
+      }
+      const oriented = await bakeRotation(buf, bake);
+      return {
+        thumb: await encodeThumb(oriented.png),
+        width: oriented.width,
+        height: oriented.height,
+      };
     } catch (err) {
       // sharp can't read some AVIF (10-bit) and no HEIC at all — decode those
       // externally. Non-HEIF formats sharp already rejected for a real reason.
       if (!isHeifFamily(buf)) throw err;
-      const png = await externalDecodePng(tmpIn);
-      if (!png) {
+      const decoded = await externalDecodePng(tmpIn);
+      if (!decoded) {
         throw new Error(
           "sharp could not decode this image and no external decoder " +
             "(ffmpeg / avifdec / ImageMagick) is available"
         );
       }
-      const meta = await sharp(png).metadata();
+      const meta = await sharp(decoded.png).metadata();
+      // Re-apply the irot rotation the decoder didn't: ffmpeg never does (we
+      // pin -noautorotate); for avifdec/magick detect it from whether the
+      // decoded dims are already swapped. 180° from a non-ffmpeg decoder is
+      // undetectable by dims — assume applied (libheif-backed magick does).
+      let rotateCw = 0;
+      if (rotationCw && decoded.decoder === "ffmpeg") {
+        rotateCw = rotationCw;
+      } else if (rotationCw % 180 === 90) {
+        const alreadySwapped =
+          heif.codedWidth !== heif.codedHeight &&
+          meta.width === heif.codedHeight;
+        rotateCw = alreadySwapped ? 0 : rotationCw;
+      }
+      if (rotateCw) {
+        const oriented = await bakeRotation(decoded.png, rotateCw);
+        return {
+          thumb: await encodeThumb(oriented.png),
+          width: oriented.width,
+          height: oriented.height,
+        };
+      }
       return {
-        thumb: await encodeThumb(png),
+        thumb: await encodeThumb(decoded.png),
         width: meta.width ?? 0,
         height: meta.height ?? 0,
       };
@@ -360,28 +510,65 @@ function toISODate(value) {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
+const EXIF_FIELDS = [
+  "Make",
+  "Model",
+  "LensModel",
+  "LensInfo",
+  "FNumber",
+  "ExposureTime",
+  "ISO",
+  "ISOSpeedRatings",
+  "FocalLength",
+  "FocalLengthIn35mmFormat",
+  "DateTimeOriginal",
+];
+
+/** Fallback reader for containers exifr can't parse (e.g. ImageMagick-written
+ *  AVIF): same whitelist via the exiftool CLI. GPS is never requested. */
+async function exiftoolExif(buf) {
+  const tmp = path.join(
+    os.tmpdir(),
+    `gallery-exif-${process.pid}-${crypto.randomBytes(4).toString("hex")}`
+  );
+  try {
+    await fs.writeFile(tmp, buf);
+    const out = await execOut("exiftool", [
+      "-json",
+      "-n",
+      ...EXIF_FIELDS.map(f => `-${f}`),
+      tmp,
+    ]);
+    if (!out) return undefined;
+    const row = JSON.parse(out)?.[0];
+    if (!row) return undefined;
+    if (typeof row.DateTimeOriginal === "string") {
+      // Normalize the naive "YYYY:MM:DD HH:MM:SS" EXIF date the way exifr does.
+      const m = row.DateTimeOriginal.match(
+        /^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/
+      );
+      row.DateTimeOriginal = m
+        ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]))
+        : undefined;
+    }
+    return row;
+  } catch {
+    return undefined;
+  } finally {
+    await fs.rm(tmp, { force: true }).catch(() => {});
+  }
+}
+
 /** Extract a privacy-safe EXIF subset (GPS is never requested). */
 async function extractExif(buf) {
   let raw;
   try {
-    raw = await exifr.parse(buf, {
-      pick: [
-        "Make",
-        "Model",
-        "LensModel",
-        "LensInfo",
-        "FNumber",
-        "ExposureTime",
-        "ISO",
-        "ISOSpeedRatings",
-        "FocalLength",
-        "FocalLengthIn35mmFormat",
-        "DateTimeOriginal",
-      ],
-    });
+    raw = await exifr.parse(buf, { pick: EXIF_FIELDS });
   } catch {
-    return undefined;
+    raw = undefined;
   }
+  const hasData = raw && EXIF_FIELDS.some(f => raw[f] != null);
+  if (!hasData) raw = await exiftoolExif(buf);
   if (!raw) return undefined;
 
   const exif = {};

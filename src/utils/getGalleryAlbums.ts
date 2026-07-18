@@ -17,7 +17,7 @@ import config from "@/config";
  * `scripts/generate-gallery-thumbs.mjs` so the site and the thumbnail
  * generator collect exactly the same set of images.
  */
-const IMAGE_RE = /!\[([^\]]*)\]\(\s*([^)\s]+?)(?:\s+["'][^"']*["'])?\s*\)/g;
+const IMAGE_RE = /!\[(.*?)\]\(\s*([^)\s]+?)(?:\s+["'][^"']*["'])?\s*\)/g;
 
 // Optionally import the generated manifest. `import.meta.glob` degrades to an
 // empty object when the file is absent, so the build never breaks before the
