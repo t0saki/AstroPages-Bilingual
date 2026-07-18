@@ -99,8 +99,18 @@
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
 }
 
-/* Caption bar inside the article image lightbox (created client-side). */
-.lightbox-caption {
+/* ===== Shared PhotoSwipe viewer (gallery + post articles) =====
+   PhotoSwipe mounts on <body>, outside any component scope, so its skin lives
+   here. Pairs with src/scripts/photoViewer.ts. */
+
+/* Near-black translucent backdrop (bgOpacity in photoViewer.ts) over a blur:
+   immersive, but the page glows through faintly. */
+.pswp__bg {
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.pswp-caption {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -114,11 +124,14 @@
   text-align: center;
   pointer-events: none;
 }
-.lightbox-caption .cap-title {
+.pswp-caption:empty {
+  display: none;
+}
+.pswp-caption .cap-title {
   font-size: 0.9rem;
   font-weight: 500;
 }
-.lightbox-caption .cap-meta {
+.pswp-caption .cap-meta {
   font-size: 0.78rem;
   opacity: 0.8;
 }

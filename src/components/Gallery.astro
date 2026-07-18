@@ -1,5 +1,4 @@
 ---
-import "photoswipe/style.css";
 import type { GalleryAlbum } from "@/types/gallery";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
@@ -173,38 +172,9 @@ const pswpStrings = JSON.stringify({
   }
 </style>
 
-<style is:global>
-  /* PhotoSwipe mounts its root on <body>, outside this component's scope,
-     so the lightbox caption must be styled globally. */
-  .pswp-gallery-caption {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
-    background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
-    color: #fff;
-    text-align: center;
-    pointer-events: none;
-  }
-  .pswp-gallery-caption:empty {
-    display: none;
-  }
-  .pswp-gallery-caption .cap-title {
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-  .pswp-gallery-caption .cap-meta {
-    font-size: 0.78rem;
-    opacity: 0.8;
-  }
-</style>
-
 <script>
-  import PhotoSwipeLightbox from "photoswipe/lightbox";
+  import type PhotoSwipeLightbox from "photoswipe/lightbox";
+  import { createViewer, parseViewerStrings } from "@/scripts/photoViewer";
 
   let lightbox: PhotoSwipeLightbox | null = null;
 
@@ -219,62 +189,16 @@ const pswpStrings = JSON.stringify({
 
     if (!document.querySelector(".g-grid")) return;
 
-    const root = document.querySelector<HTMLElement>("[data-pswp-strings]");
-    let s: Record<string, string> = {};
-    try {
-      s = JSON.parse(root?.dataset.pswpStrings ?? "{}");
-    } catch {
-      s = {};
-    }
-
-    lightbox = new PhotoSwipeLightbox({
-      // Each `.g-grid` is an independent album; arrows stay within one album.
-      gallery: ".g-grid",
-      children: "a.g-item",
-      pswpModule: () => import("photoswipe"),
-      // Fully opaque backdrop for an immersive, distraction-free view.
-      bgOpacity: 1,
-      closeTitle: s.close,
-      zoomTitle: s.zoom,
-      arrowPrevTitle: s.prev,
-      arrowNextTitle: s.next,
-      errorMsg: s.error,
-    });
-
-    lightbox.on("uiRegister", () => {
-      lightbox?.pswp?.ui?.registerElement({
-        name: "gallery-caption",
-        order: 9,
-        isButton: false,
-        appendTo: "root",
-        onInit: (el, pswp) => {
-          el.className = "pswp-gallery-caption";
-          const update = () => {
-            const anchor = pswp.currSlide?.data?.element as
-              | HTMLElement
-              | undefined;
-            el.replaceChildren();
-            if (!anchor) return;
-            const alt = anchor.querySelector("img")?.getAttribute("alt") ?? "";
-            const lines: Array<[string, string]> = [
-              [alt, "cap-title"],
-              [anchor.dataset.exifCamera ?? "", "cap-meta"],
-              [anchor.dataset.exifSettings ?? "", "cap-meta"],
-            ];
-            for (const [text, cls] of lines) {
-              if (!text) continue;
-              const span = document.createElement("span");
-              span.className = cls;
-              span.textContent = text; // textContent → XSS-safe
-              el.appendChild(span);
-            }
-          };
-          pswp.on("change", update);
-          update();
-        },
-      });
-    });
-
+    lightbox = createViewer(
+      {
+        // Each `.g-grid` is an independent album; arrows stay within one album.
+        gallery: ".g-grid",
+        children: "a.g-item",
+      },
+      parseViewerStrings(
+        document.querySelector<HTMLElement>("[data-pswp-strings]")
+      )
+    );
     lightbox.init();
   }
 

@@ -1,0 +1,163 @@
+---
+import { useTranslations } from "@/i18n";
+import config from "@/config";
+
+/**
+ * Article image enhancements, shared by the zh and en post pages:
+ * - hover overlay (caption + EXIF) for photos listed in the gallery manifest
+ *   (read from `data-image-info` on `#article`); other images are untouched;
+ * - a PhotoSwipe viewer over all article images (src/scripts/photoViewer.ts —
+ *   the same viewer as the gallery page), with prev/next across the post.
+ */
+const locale = Astro.currentLocale ?? config.site.lang;
+const t = useTranslations(locale);
+
+const pswpStrings = JSON.stringify({
+  close: t.a11y.lightboxClose,
+  zoom: t.a11y.lightboxZoom,
+  prev: t.a11y.lightboxPrev,
+  next: t.a11y.lightboxNext,
+  error: t.a11y.lightboxError,
+});
+---
+
+<span id="post-images-config" hidden data-pswp-strings={pswpStrings}></span>
+
+<script>
+  import type PhotoSwipeLightbox from "photoswipe/lightbox";
+  import {
+    captionFromElement,
+    createViewer,
+    parseViewerStrings,
+  } from "@/scripts/photoViewer";
+  import type { ArticleImageInfo } from "@/utils/getGalleryAlbums";
+
+  /** Fallback slide dimensions (3:2) when an image hasn't loaded yet. */
+  const FALLBACK_WIDTH = 1600;
+  const FALLBACK_HEIGHT = 1067;
+
+  let lightbox: PhotoSwipeLightbox | null = null;
+  let viewerImages: HTMLImageElement[] = [];
+
+  function destroyViewer() {
+    lightbox?.destroy();
+    lightbox = null;
+    viewerImages = [];
+  }
+
+  /** Hover overlay + lightbox metadata for one manifest photo. */
+  function decoratePhoto(image: HTMLImageElement, info: ArticleImageInfo) {
+    image.dataset.photo = "1";
+    if (info.camera) image.dataset.exifCamera = info.camera;
+    if (info.settings) image.dataset.exifSettings = info.settings;
+    if (image.closest(".img-info")) return;
+
+    const lines = [
+      [image.alt, "img-info-caption"],
+      [info.camera, "img-info-meta"],
+      [info.settings, "img-info-meta"],
+    ].filter(line => line[0]);
+    if (lines.length === 0) return;
+
+    const wrap = document.createElement("span");
+    wrap.className = "img-info";
+    const overlay = document.createElement("span");
+    overlay.className = "img-info-overlay";
+    overlay.setAttribute("aria-hidden", "true");
+    for (const [text, cls] of lines) {
+      const span = document.createElement("span");
+      span.className = cls ?? "";
+      span.textContent = text ?? ""; // textContent → XSS-safe
+      overlay.appendChild(span);
+    }
+    image.replaceWith(wrap);
+    wrap.append(image, overlay);
+  }
+
+  function initPostImages() {
+    // Re-init cleanly across view transitions.
+    destroyViewer();
+
+    const article = document.getElementById("article");
+    if (!article) return;
+
+    let infoMap: Record<string, ArticleImageInfo> = {};
+    try {
+      infoMap = JSON.parse(article.dataset.imageInfo ?? "{}");
+    } catch {
+      infoMap = {};
+    }
+
+    // Defer attribute/DOM mutations so they don't push the LCP timestamp.
+    // The delegated listeners below don't need them to exist yet.
+    requestAnimationFrame(() => {
+      viewerImages = Array.from(article.querySelectorAll("img")).filter(
+        image => !image.closest("a")
+      );
+      for (const image of viewerImages) {
+        image.setAttribute("role", "button");
+        image.setAttribute("tabindex", "0");
+        image.setAttribute("aria-haspopup", "dialog");
+        image.setAttribute(
+          "aria-label",
+          image.alt ? `Zoom image: ${image.alt}` : "Zoom image"
+        );
+        const info = infoMap[image.getAttribute("src") ?? ""];
+        if (info) decoratePhoto(image, info);
+      }
+    });
+
+    lightbox = createViewer(
+      {},
+      parseViewerStrings(document.getElementById("post-images-config")),
+      // Captions only for manifest photos — screenshots etc. stay caption-free.
+      element => (element?.dataset.photo ? captionFromElement(element) : {})
+    );
+    lightbox.init();
+
+    const openAt = (image: HTMLImageElement) => {
+      if (!lightbox) return;
+      const index = viewerImages.indexOf(image);
+      if (index < 0) return;
+      // Built at open time: below-fold images have loaded by now, so
+      // naturalWidth/Height are real instead of 0.
+      lightbox.options.dataSource = viewerImages.map(img => {
+        const src = img.currentSrc || img.src;
+        const info = infoMap[img.getAttribute("src") ?? ""];
+        return {
+          src,
+          msrc: src,
+          width: info?.width ?? (img.naturalWidth || FALLBACK_WIDTH),
+          height: info?.height ?? (img.naturalHeight || FALLBACK_HEIGHT),
+          alt: img.alt,
+          element: img,
+        };
+      });
+      lightbox.loadAndOpen(index);
+    };
+
+    const triggerFromEvent = (e: Event): HTMLImageElement | null => {
+      const image = (e.target as HTMLElement).closest("img");
+      if (!image || !article.contains(image) || image.closest("a")) return null;
+      return image;
+    };
+
+    article.addEventListener("click", e => {
+      const image = triggerFromEvent(e);
+      if (!image) return;
+      e.preventDefault();
+      openAt(image);
+    });
+
+    article.addEventListener("keydown", e => {
+      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+      const image = triggerFromEvent(e);
+      if (!image) return;
+      e.preventDefault();
+      openAt(image);
+    });
+  }
+
+  document.addEventListener("astro:page-load", initPostImages);
+  document.addEventListener("astro:before-swap", destroyViewer);
+</script>
