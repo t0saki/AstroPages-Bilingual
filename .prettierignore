@@ -19,3 +19,8 @@
 
 # Python has no prettier parser
 *.py
+
+# Don't reformat authored blog/page content. Prettier mangles markdown autolink
+# URLs that contain underscores, e.g. <https://…/File_Name_(1893_Fig_11).svg>,
+# by inserting emphasis escapes and breaking the link.
+/src/content
