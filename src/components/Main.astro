@@ -6,11 +6,9 @@ type Props = {
   pageTitle: string | [string, string];
   pageDesc?: string;
   class?: string;
-  /** Album-app layout: ~80vw on desktop instead of the regular text width. */
-  wide?: boolean;
 };
 
-const { pageTitle, pageDesc, class: className, wide = false } = Astro.props;
+const { pageTitle, pageDesc, class: className } = Astro.props;
 
 const locale = Astro.currentLocale ?? config.site.lang;
 const backUrl = config.features.showBackButton
@@ -21,7 +19,7 @@ const backUrl = config.features.showBackButton
 <main
   data-backUrl={backUrl}
   id="main-content"
-  class:list={[wide ? "app-layout-wide" : "app-layout", "pb-4", className]}
+  class:list={["app-layout pb-4", className]}
 >
   <h1 class="text-2xl font-semibold sm:text-3xl">{pageTitle}</h1>
   <p class="mt-2 mb-6 italic">{pageDesc}</p>

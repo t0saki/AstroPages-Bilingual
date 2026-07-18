@@ -100,6 +100,12 @@ const pswpStrings = JSON.stringify({
     display: flex;
     flex-wrap: wrap;
     gap: 0.375rem;
+    /* Album-app breakout: the photo rows escape the text column up to ~80% of
+       the viewport (capped for ultrawide monitors) and re-center themselves,
+       while the page/album titles above stay at the regular content width. */
+    --g-wide: max(100%, min(80vw, 100rem));
+    width: var(--g-wide);
+    margin-inline: calc((100% - var(--g-wide)) / 2);
   }
   .g-grid::after {
     content: "";
@@ -109,6 +115,7 @@ const pswpStrings = JSON.stringify({
      cancelling the page's 1rem side padding; titles/dates stay padded. */
   @media (width < 40rem) {
     .g-grid {
+      width: calc(100% + 2rem);
       margin-inline: -1rem;
     }
     .g-grid .g-item {
