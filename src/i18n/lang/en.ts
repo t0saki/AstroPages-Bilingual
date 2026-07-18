@@ -43,20 +43,20 @@ export default {
     tagDesc: "All the articles with the tag",
 
     tagsTitle: "Tags",
-    tagsDesc: "All the tags used in posts.",
+    tagsDesc: "Posts, threaded by topic.",
 
     postsTitle: "Posts",
-    postsDesc: "All the articles I've posted.",
+    postsDesc: "Written down, so it isn't forgotten.",
 
     archivesTitle: "Archives",
-    archivesDesc: "All the articles I've archived.",
+    archivesDesc: "Where older words settle, year by year.",
 
     galleryTitle: "Gallery",
     galleryDesc: "Moments the light remembers.",
-    galleryEmpty: "No photos yet.",
+    galleryEmpty: "The shutter hasn't clicked yet.",
 
     searchTitle: "Search",
-    searchDesc: "Search any article ...",
+    searchDesc: "A few words to find it again.",
   },
   a11y: {
     skipToContent: "Skip to content",

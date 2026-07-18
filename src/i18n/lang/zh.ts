@@ -43,20 +43,20 @@ export default {
     tagDesc: "所有带有此标签的文章",
 
     tagsTitle: "标签",
-    tagsDesc: "文章中使用的所有标签。",
+    tagsDesc: "按话题串起的文章。",
 
     postsTitle: "文章",
-    postsDesc: "我发布的所有文章。",
+    postsDesc: "写下来的，就不会忘了。",
 
     archivesTitle: "归档",
-    archivesDesc: "我归档的所有文章。",
+    archivesDesc: "旧文按时间沉淀在这里。",
 
     galleryTitle: "相册",
-    galleryDesc: "旅途中的照片，按游记分组。",
-    galleryEmpty: "还没有照片。",
+    galleryDesc: "被光记住的片刻。",
+    galleryEmpty: "快门还没响过。",
 
     searchTitle: "搜索",
-    searchDesc: "搜索任意文章……",
+    searchDesc: "用几个字，找回一篇文章。",
   },
   a11y: {
     skipToContent: "跳转到正文",
