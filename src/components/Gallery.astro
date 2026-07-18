@@ -105,6 +105,16 @@ const pswpStrings = JSON.stringify({
     content: "";
     flex-grow: 1000000;
   }
+  /* Album-app feel on phones: photo rows bleed to the screen edges by
+     cancelling the page's 1rem side padding; titles/dates stay padded. */
+  @media (width < 40rem) {
+    .g-grid {
+      margin-inline: -1rem;
+    }
+    .g-grid .g-item {
+      border-radius: 0;
+    }
+  }
   .g-item {
     position: relative;
     aspect-ratio: var(--ar);

@@ -30,6 +30,14 @@
   @apply max-w-app mx-auto w-full px-4;
 }
 
+@utility app-layout-wide {
+  @apply mx-auto w-full px-4;
+  /* Album-app width for media-heavy pages (gallery): ~80% of the viewport on
+     desktop, never narrower than the regular app-layout, capped so photo rows
+     don't grow comically long on ultrawide monitors. */
+  max-width: clamp(48rem, 80vw, 100rem);
+}
+
 @utility active-nav {
   @apply underline decoration-wavy decoration-2 underline-offset-8;
 }
