@@ -31,7 +31,6 @@ export default {
     shareLink: "Share link",
     linkCopied: "Link copied",
     copyLinkFailed: "Couldn't copy — use the address bar",
-    tagFilter: "Tag",
   },
   pagination: {
     prev: "Prev",

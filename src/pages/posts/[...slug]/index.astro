@@ -13,7 +13,6 @@ import { getArticleImageInfo } from "@/utils/getGalleryAlbums";
 import { getPostToc } from "@/utils/getPostToc";
 import { getPostReadingTime } from "@/utils/getReadingTime";
 import { getRelatedPosts, type RelatedPost } from "@/utils/getRelatedPosts";
-import { getUniqueTags } from "@/utils/getUniqueTags";
 import EditPost from "./_components/EditPost.astro";
 import ShareLinks from "./_components/ShareLinks.astro";
 import BackButton from "./_components/BackButton.astro";
@@ -28,20 +27,11 @@ import { useTranslations } from "@/i18n";
 export async function getStaticPaths() {
   const posts = await getCollection("posts", ({ id }) => id.startsWith("zh/"));
   const sortedPosts = getSortedPosts(posts);
-  // Each tag slug's name as the /tags/ pages spell it (same posts, same
-  // order), so search files "Photography" and "photography" as one filter
-  // value, just as /tags/ lists them as one tag.
-  const tagNames = new Map(
-    getUniqueTags(posts).map(({ tag, tagName }) => [tag, tagName])
-  );
 
   return sortedPosts.map((post, index) => ({
     params: { slug: getPostSlug(post.id, post.filePath) },
     props: {
       post,
-      searchTags: post.data.tags.map(
-        tag => tagNames.get(slugifyStr(tag)) ?? tag
-      ),
       // Ranked against the same locale's published posts the routes come from.
       relatedPosts: getRelatedPosts(post, sortedPosts),
       prevPost:
@@ -72,14 +62,12 @@ type AdjacentPost = {
 
 type Props = {
   post: CollectionEntry<"posts">;
-  /** `post.data.tags`, each under its /tags/ name — the search filter value. */
-  searchTags: string[];
   relatedPosts: RelatedPost[];
   prevPost: AdjacentPost;
   nextPost: AdjacentPost;
 };
 
-const { post, searchTags, relatedPosts, prevPost, nextPost } = Astro.props;
+const { post, relatedPosts, prevPost, nextPost } = Astro.props;
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
 
@@ -210,16 +198,7 @@ const ogImage = ogImageUrl
     <BackToTopButton />
 
     <ul class="mt-4 mb-8 flex flex-wrap gap-4 sm:my-8">
-      {
-        tags.map((tag, index) => (
-          <Tag
-            tag={slugifyStr(tag)}
-            tagName={tag}
-            size="sm"
-            pagefindFilter={`${t.post.tagFilter}:${searchTags[index]}`}
-          />
-        ))
-      }
+      {tags.map(tag => <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />)}
     </ul>
 
     <ShareLinks {title} />

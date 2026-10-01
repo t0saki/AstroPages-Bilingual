@@ -63,21 +63,26 @@ const postsPrefix = aiSearch
     font-family: var(--font-app);
   }
 
+  /* Styled as Pagefind's result count line, the heading of the keyword
+     results below, so the two lists read as sibling sections. */
   #ai-search-panel .ai-search__label {
+    display: flex;
+    align-items: center;
+    height: calc(24px * var(--ai-search-scale));
     margin: 0;
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--muted-foreground);
+    padding: calc(20px * var(--ai-search-scale)) 0;
+    font-size: calc(16px * var(--ai-search-scale));
+    font-weight: 700;
   }
 
   #ai-search-panel .ai-search__status {
-    margin: calc(12px * var(--ai-search-scale)) 0 0;
+    margin: 0;
     font-size: calc(16px * var(--ai-search-scale));
     color: var(--muted-foreground);
   }
 
   #ai-search-panel .ai-search__results {
-    margin: calc(8px * var(--ai-search-scale)) 0 0;
+    margin: 0;
     padding: 0;
     list-style: none;
     transition: opacity 150ms;
@@ -88,8 +93,8 @@ const postsPrefix = aiSearch
   }
 
   #ai-search-panel .ai-search__result {
-    padding: calc(16px * var(--ai-search-scale)) 0
-      calc(20px * var(--ai-search-scale));
+    padding: calc(20px * var(--ai-search-scale)) 0
+      calc(24px * var(--ai-search-scale));
     border-top: 1px solid var(--border);
   }
 
@@ -127,10 +132,16 @@ const postsPrefix = aiSearch
     color: var(--muted-foreground);
   }
 
+  /* A chunk's opening runs long; two lines are enough to place it. */
   #ai-search-panel .ai-search__excerpt {
+    display: -webkit-box;
     margin: calc(4px * var(--ai-search-scale)) 0 0;
+    overflow: hidden;
     font-size: calc(16px * var(--ai-search-scale));
     overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   /* Screen-reader-only status (loading, result count); never hidden. */
@@ -153,13 +164,10 @@ const postsPrefix = aiSearch
   }
 
   /* The panel has posts to offer and Pagefind has none: its "no results"
-     line right below would contradict the panel, beside a tag filter with
-     nothing to filter. Drop the drawer for that case — unless a filter is
-     ticked, which may be why Pagefind came up empty and has to stay
-     reachable to be unticked. */
+     line right below would contradict the panel. */
   #pagefind-search
     form:has(> #ai-search-panel:not([hidden]) .ai-search__result)
-    > .pagefind-ui__drawer:not(:has(.pagefind-ui__result, input:checked)) {
+    > .pagefind-ui__drawer:not(:has(.pagefind-ui__result)) {
     display: none;
   }
 </style>

@@ -93,6 +93,20 @@ const pagefindTranslations = JSON.stringify({
       border-bottom: 0;
     }
 
+    /* Same spacing as the semantic panel's results (AiSearch.astro). */
+    .pagefind-ui__result {
+      padding: calc(20px * var(--pagefind-ui-scale)) 0
+        calc(24px * var(--pagefind-ui-scale));
+    }
+
+    /* The browser's yellow, untouched by the theme, glares in dark mode. */
+    mark {
+      padding: 0 0.1em;
+      color: inherit;
+      background-color: color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 2px;
+    }
+
     .pagefind-ui__result-nested .pagefind-ui__result-link:before {
       font-family: system-ui;
     }

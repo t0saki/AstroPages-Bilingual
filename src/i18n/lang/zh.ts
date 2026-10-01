@@ -31,7 +31,6 @@ export default {
     shareLink: "分享链接",
     linkCopied: "链接已复制",
     copyLinkFailed: "复制失败，请从地址栏复制链接",
-    tagFilter: "标签",
   },
   pagination: {
     prev: "上一页",
