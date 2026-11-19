@@ -22,6 +22,7 @@
 - **中文字体**：内置思源屏显臻宋（`@chinese-fonts/sypxzs`）。
 - **静态全文搜索**：基于 [Pagefind](https://pagefind.app/)，按语言分别索引；可选叠加 Cloudflare AI Search 语义结果（见 [语义搜索](#-语义搜索可选)）。
 - **数学公式**：Markdown 内嵌 LaTeX 公式，构建期由 [KaTeX](https://katex.org/) 渲染（remark-math + rehype-katex），无需客户端 JS。
+- **聊天记录**：用 `chat` 代码块写 YAML，构建时重绘成跟随主题、可选中可搜索的聊天记录，支持 Bot、引用、表情回应、遮挡和占位卡片（见 [聊天记录](#聊天记录)）。
 - **照片相册**：`/gallery` 页汇集设置了 `gallery: true` 的文章中的图床照片，按文章分组，悬停显示 EXIF（机型/镜头/参数），点击进 [PhotoSwipe](https://photoswipe.com/) 灯箱。可按相机、镜头、焦段筛选。缩略图与 EXIF 由脚本预生成入库（见 [照片相册](#-照片相册)）。**视频同样支持**：链接指向 `.mp4`/`.webm`/`.mov`/`.m4v` 即可，正文渲染成内联播放器，相册页收进一格带播放角标的画面。
 - **文章目录**：标题足够多的文章自动生成目录——宽屏（≥1280px）在正文右侧常驻并随阅读位置高亮，窄屏收进左下角的浮动按钮，点开是一张目录面板（见 [文章目录](#文章目录)）。
 - **SEO 优化**：预配置多语言 Meta 标签、Sitemap 与 OpenGraph。
@@ -164,6 +165,42 @@ shareLinks: [
   { name: "mail", url: "mailto:?subject={title}&body={url}" },
 ],
 ```
+
+### 聊天记录
+
+语言标记为 `chat` 的代码块会在构建时重绘成一段聊天记录（`<figure>`），块内写 YAML。`.md` 与 `.mdx` 都可用：
+
+````md
+```chat
+title: 周末去哪
+meta: 微信群 · 2026 年 5 月
+caption: 重绘自群聊截图，昵称已替换。[出处](https://example.com)
+people:
+  小助手: { bot: true }
+  我: { self: true }
+  阿明: { avatar: 明, color: 3 }
+messages:
+  - time: "20:40"
+  - 阿明: 周末去爬山吗
+  - 我: "@小助手 查一下天气"
+  - from: 小助手
+    reply: { from: 我, text: "@小助手 查一下天气" }
+    text: |
+      周六多云，周日有雨。
+
+      建议周六去。
+    reactions: ["👍 2"]
+  - note: 小助手 撤回了一条消息
+  - gap: 中间略去 12 条
+```
+````
+
+- **顶层**（除 `messages` 外都可省略）：`title` / `meta` 是标题行的左右两侧；`caption` 是图注，只识别 `[文字](链接)`（链接限 `http(s)://`、`/`、`#` 开头）；`wide: true` 用更宽的版式；`max-height` 默认限高约 28rem、框内滚动，写 `none` 整段铺开，或写一个 CSS 长度（如 `"min(30rem, 62svh)"`）单独换上限。
+- **`people`**：以显示名为键，都可省略。`bot`（强调色描边 + Bot 徽标，`badge: false` 不显示徽标）、`self`（靠右、不显示头像和名字）、`avatar`（头像里的字，默认取名字第一个字）、`color`（1–6，默认按出场顺序分配）。
+- **`messages`** 每项一个：`time`（时间）、`note`（系统提示）、`gap`（省略标记），或一条消息。`- 名字: 文字` 是 `{ from: 名字, text: 文字 }` 的简写；完整写法用 `from` 加上 `text`、`reply: { from, text }`（引用）、`image: { src, alt, width?, height? }`（`src` 限 `http(s)://` 或 `/` 开头）、`voice: 秒数`、`reactions: ["👍 2"]`、`card` 中的若干项，`text` / `image` / `card` / `voice` 至少一项。
+- **`card`** 是占位卡片，用骨架示意不便照搬的卡片或图片：`{ label?, inline?, rows }`，`inline: true` 时放进文字气泡。`rows` 每行一个键：`title` / `heading` / `text`（文字）、`lines` / `bullets`（灰条宽度百分比，如 `[90, 60]`）、`rule: true`（分隔线）、`stats`（`{ 键: 值 }` 小格子）、`tiles`（方格数量）、`plot`（`[[x%, y%], …]`，网格上的点）。
+- **文字**原样显示，不解析 Markdown。空行分段、换行保留；`@名字`（块中出现过的人）高亮；`` `代码` ``（仅消息正文）显示为等宽；连续的 `█` 画成遮挡条。不加引号时 YAML 会把 `666`、`true` 读成数字和布尔，这里按文字处理，但 `0.10` 会变成 `0.1`、`2026-05-01` 会被读成日期而报错，需要原样保留时请加引号。
+- 写错（YAML 语法、未知字段、缺 `from` 等）时，构建失败并指出文件、行号和字段；`astro dev` 下错误直接显示在页面上那段的位置。聊天记录不计入阅读时长。
 
 ## 📸 照片相册
 
@@ -309,6 +346,7 @@ pnpm build                   # 验证构建
 - `src/components/LanguageSwitcher.astro` + `src/layouts/Layout.astro` 的语言重定向脚本，二者都依赖 `src/utils/resolveAlternate.ts`（判断各语言有哪些页面：新页面要在 `src/pages/` 和 `src/pages/[lang]/` 下都有路由文件，才会生成对应语言的链接和 `hreflang`）。
 - `src/styles/theme.css` 的 `--font-app`（中文字体栈）+ `src/layouts/Layout.astro` 的字体导入。
 - `_redirects`、`package.json`（部署相关依赖与脚本）。
+- `src/utils/remark/remarkChat.ts`、`src/utils/chat/`、`src/styles/chat.css` — 聊天记录块（均为新增文件）；接入点只有 `astro.config.ts` 中 `remarkPlugins` 与 `integrations` 各一行、`src/styles/global.css` 中一行 `@import`。
 
 ## 📜 本次 v6.1 重构要点
 
