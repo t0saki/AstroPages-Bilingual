@@ -195,7 +195,7 @@ messages:
 ```
 ````
 
-- **顶层**（除 `messages` 外都可省略）：`title` / `meta` 是标题行的左右两侧；`caption` 是图注，只识别 `[文字](链接)`（链接限 `http(s)://`、`/`、`#` 开头）；`wide: true` 用更宽的版式；`max-height` 默认限高约 28rem、框内滚动（估算肯定放得下的短对话不设滚动区），写 `none` 整段铺开，或写一个 CSS 长度（如 `"min(30rem, 62svh)"`）单独换上限。
+- **顶层**（除 `messages` 外都可省略）：`title` / `meta` 是标题行的左右两侧；`caption` 是图注，只识别 `[文字](链接)`（链接限 `http(s)://`、`/`、`#` 开头）；`wide: true` 用更宽的版式；`max-height` 默认限高约 28rem、框内滚动，写 `none` 整段铺开（只有两三条的短对话建议这样写），或写一个 CSS 长度（如 `"min(30rem, 62svh)"`）单独换上限。
 - **`people`**：以显示名为键，都可省略。`bot`（强调色描边 + Bot 徽标，`badge: false` 不显示徽标）、`self`（靠右、不显示头像和名字）、`avatar`（头像里的字，默认取名字第一个字）、`color`（1–6，默认按出场顺序分配）。
 - **`messages`** 每项一个：`time`（时间）、`note`（系统提示）、`gap`（省略标记），或一条消息。`- 名字: 文字` 是 `{ from: 名字, text: 文字 }` 的简写；完整写法用 `from` 加上 `text`、`reply: { from, text }`（引用）、`image: { src, alt, width?, height? }`（`src` 限 `http(s)://` 或 `/` 开头）、`voice: 秒数`、`reactions: ["👍 2"]`、`card` 中的若干项，`text` / `image` / `card` / `voice` 至少一项。简写不能再带其他字段；`time`、`note`、`gap`、`from`、`text`、`reply`、`image`、`card`、`voice`、`reactions` 不能当简写里的名字，叫这些名字的人请用 `from:`。
 - **`card`** 是占位卡片，用骨架示意不便照搬的卡片或图片：`{ label?, inline?, rows }`，`inline: true` 时放进文字气泡。`rows` 每行一个键：`title` / `heading` / `text`（文字）、`lines` / `bullets`（灰条宽度百分比，如 `[90, 60]`）、`rule: true`（分隔线）、`stats`（`{ 键: 值 }` 小格子）、`tiles`（方格数量）、`plot`（`[[x%, y%], …]`，网格上的点）。
