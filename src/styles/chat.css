@@ -31,7 +31,10 @@
   /* Shadow of the no-scroll-timeline fallback (see the feed). Its own
      variable so the dark theme can swap the ink, which is light there and
      would glow, for the page's own dark. */
-  --chat-shadow: color-mix(in oklab, var(--chat-fg) 24%, transparent);
+  --chat-shadow: color-mix(in oklab, var(--chat-fg) 16%, transparent);
+  /* Keyboard focus ring: the ink, which stands apart from the frame in both
+     themes (the dark --border is an orange near the accent). */
+  --chat-focus: color-mix(in oklab, var(--chat-fg) 70%, transparent);
   /* Tallest the feed grows before it scrolls: about 448px on a desktop, and
      never more than about half a phone screen. A block's `max-height`
      overrides it inline. */
@@ -145,7 +148,7 @@
 /* ---- Frame ---- */
 .chat__log {
   --chat-px: 0.75rem;
-  padding: 0 0 0.25rem;
+  padding: 0;
   overflow: hidden;
   overflow: clip;
   border: 1px solid var(--chat-frame);
@@ -191,7 +194,9 @@
    The title row and the caption stay outside the scroller. */
 .chat__feed {
   --chat-pt: 0.35rem;
-  --chat-pb: 0.65rem;
+  /* All the space under the last message is the feed's own, so the scroll
+     shadow and fade reach right down to the frame. */
+  --chat-pb: 0.9rem;
   position: relative;
   padding: var(--chat-pt) var(--chat-px) var(--chat-pb);
 }
@@ -219,7 +224,10 @@
     linear-gradient(transparent, var(--chat-shadow)) bottom / 100% 1.75rem
       no-repeat scroll;
   background-color: var(--chat-surface);
-  scrollbar-color: var(--chat-thumb) transparent;
+  /* An opaque track: with classic (non-overlay) scrollbars, the `scroll`
+     shadow layers also paint under the track, where no `local` cover
+     reaches, and would show there at an end already scrolled to. */
+  scrollbar-color: var(--chat-thumb) var(--chat-surface);
   scrollbar-width: thin;
 }
 
@@ -233,7 +241,7 @@
   }
 
   .chat__feed.is-scroll::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--chat-surface);
   }
 
   .chat__feed.is-scroll::-webkit-scrollbar-thumb {
@@ -324,10 +332,12 @@
 
 /* Keyboard focus: the feed is a tab stop so it can be scrolled with the
    arrow keys. The ring goes round the whole frame where :has() can put it
-   there; an inset ring on the feed otherwise. */
+   there; an inset ring on the feed otherwise. Drawn in the ink, not the
+   accent, which next to the dark theme's orange frame read as a doubled
+   outline rather than focus; the gap keeps the two lines apart. */
 .chat__feed.is-scroll:focus-visible {
   border-radius: 0.6rem;
-  outline: 2px solid color-mix(in oklab, var(--chat-accent) 55%, transparent);
+  outline: 2px solid var(--chat-focus);
   outline-offset: -2px;
 }
 
@@ -337,13 +347,29 @@
   }
 
   .chat__log:has(> .chat__feed:focus-visible) {
-    outline: 2px solid color-mix(in oklab, var(--chat-accent) 55%, transparent);
-    outline-offset: 2px;
+    outline: 2px solid var(--chat-focus);
+    outline-offset: 3px;
   }
 }
 
-/* Paper doesn't scroll: print the whole conversation. */
+/* Paper doesn't scroll: print the whole conversation. It may run across
+   pages — global.css keeps every `figure` in one piece, which for a long chat
+   means pushing it to a fresh page and leaving most of the previous one blank
+   — but a single message, card or the title row is never cut in two. */
 @media print {
+  .chat {
+    break-inside: auto;
+  }
+
+  .chat__head,
+  .chat__msg,
+  .chat__time,
+  .chat__note,
+  .chat__gap,
+  .chat__card {
+    break-inside: avoid;
+  }
+
   .chat__log {
     overflow: visible;
   }
@@ -458,16 +484,17 @@
 }
 
 /* Six avatar hues, turned around the accent's own hue at its lightness and
-   chroma: they sit with whatever palette the theme has, and none matches the
-   accent itself, which marks bots. Browsers without relative colours show
-   every person in the muted ink. */
+   chroma: they sit with whatever palette the theme has, and every one stays
+   at least 60° from the accent itself, which marks bots — closer, and the
+   first speaker's avatar passed for the bot's. Browsers without relative
+   colours show every person in the muted ink. */
 @supports (color: oklch(from red l c h)) {
   .chat__av--1 {
-    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 30));
+    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 60));
   }
 
   .chat__av--2 {
-    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 90));
+    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 105));
   }
 
   .chat__av--3 {
@@ -479,11 +506,11 @@
   }
 
   .chat__av--5 {
-    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 270));
+    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 255));
   }
 
   .chat__av--6 {
-    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 330));
+    --chat-hue: oklch(from var(--chat-accent) l c calc(h + 300));
   }
 }
 
