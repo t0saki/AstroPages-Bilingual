@@ -195,9 +195,9 @@ messages:
 ```
 ````
 
-- **顶层**（除 `messages` 外都可省略）：`title` / `meta` 是标题行的左右两侧；`caption` 是图注，只识别 `[文字](链接)`（链接限 `http(s)://`、`/`、`#` 开头）；`wide: true` 用更宽的版式；`max-height` 默认限高约 28rem、框内滚动，写 `none` 整段铺开，或写一个 CSS 长度（如 `"min(30rem, 62svh)"`）单独换上限。
+- **顶层**（除 `messages` 外都可省略）：`title` / `meta` 是标题行的左右两侧；`caption` 是图注，只识别 `[文字](链接)`（链接限 `http(s)://`、`/`、`#` 开头）；`wide: true` 用更宽的版式；`max-height` 默认限高约 28rem、框内滚动（估算肯定放得下的短对话不设滚动区），写 `none` 整段铺开，或写一个 CSS 长度（如 `"min(30rem, 62svh)"`）单独换上限。
 - **`people`**：以显示名为键，都可省略。`bot`（强调色描边 + Bot 徽标，`badge: false` 不显示徽标）、`self`（靠右、不显示头像和名字）、`avatar`（头像里的字，默认取名字第一个字）、`color`（1–6，默认按出场顺序分配）。
-- **`messages`** 每项一个：`time`（时间）、`note`（系统提示）、`gap`（省略标记），或一条消息。`- 名字: 文字` 是 `{ from: 名字, text: 文字 }` 的简写；完整写法用 `from` 加上 `text`、`reply: { from, text }`（引用）、`image: { src, alt, width?, height? }`（`src` 限 `http(s)://` 或 `/` 开头）、`voice: 秒数`、`reactions: ["👍 2"]`、`card` 中的若干项，`text` / `image` / `card` / `voice` 至少一项。
+- **`messages`** 每项一个：`time`（时间）、`note`（系统提示）、`gap`（省略标记），或一条消息。`- 名字: 文字` 是 `{ from: 名字, text: 文字 }` 的简写；完整写法用 `from` 加上 `text`、`reply: { from, text }`（引用）、`image: { src, alt, width?, height? }`（`src` 限 `http(s)://` 或 `/` 开头）、`voice: 秒数`、`reactions: ["👍 2"]`、`card` 中的若干项，`text` / `image` / `card` / `voice` 至少一项。简写不能再带其他字段；`time`、`note`、`gap`、`from`、`text`、`reply`、`image`、`card`、`voice`、`reactions` 不能当简写里的名字，叫这些名字的人请用 `from:`。
 - **`card`** 是占位卡片，用骨架示意不便照搬的卡片或图片：`{ label?, inline?, rows }`，`inline: true` 时放进文字气泡。`rows` 每行一个键：`title` / `heading` / `text`（文字）、`lines` / `bullets`（灰条宽度百分比，如 `[90, 60]`）、`rule: true`（分隔线）、`stats`（`{ 键: 值 }` 小格子）、`tiles`（方格数量）、`plot`（`[[x%, y%], …]`，网格上的点）。
 - **文字**原样显示，不解析 Markdown。空行分段、换行保留；`@名字`（块中出现过的人）高亮；`` `代码` ``（仅消息正文）显示为等宽；连续的 `█` 画成遮挡条。不加引号时 YAML 会把 `666`、`true` 读成数字和布尔，这里按文字处理，但 `0.10` 会变成 `0.1`、`2026-05-01` 会被读成日期而报错，需要原样保留时请加引号。
 - 写错（YAML 语法、未知字段、缺 `from` 等）时，构建失败并指出文件、行号和字段；`astro dev` 下错误直接显示在页面上那段的位置。聊天记录不计入阅读时长。
@@ -346,7 +346,7 @@ pnpm build                   # 验证构建
 - `src/components/LanguageSwitcher.astro` + `src/layouts/Layout.astro` 的语言重定向脚本，二者都依赖 `src/utils/resolveAlternate.ts`（判断各语言有哪些页面：新页面要在 `src/pages/` 和 `src/pages/[lang]/` 下都有路由文件，才会生成对应语言的链接和 `hreflang`）。
 - `src/styles/theme.css` 的 `--font-app`（中文字体栈）+ `src/layouts/Layout.astro` 的字体导入。
 - `_redirects`、`package.json`（部署相关依赖与脚本）。
-- `src/utils/remark/remarkChat.ts`、`src/utils/chat/`、`src/styles/chat.css` — 聊天记录块（均为新增文件）；接入点只有 `astro.config.ts` 中 `remarkPlugins` 与 `integrations` 各一行、`src/styles/global.css` 中一行 `@import`。
+- `src/utils/remark/remarkChat.ts`、`src/utils/chat/`、`src/styles/chat.css` — 聊天记录块（均为新增文件）；接入点只有 `astro.config.ts` 中 1 行 import（`remarkChat, chatBlockErrors`）加 `remarkPlugins`、`integrations` 各 1 项（附注释），以及 `src/styles/global.css` 中一行 `@import`。
 
 ## 📜 本次 v6.1 重构要点
 
