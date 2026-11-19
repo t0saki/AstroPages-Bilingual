@@ -3,6 +3,7 @@
 @import "./typography.css";
 @import "rehype-callouts/theme/obsidian";
 @import "katex/dist/katex.min.css";
+@import "./chat.css";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
