@@ -258,14 +258,31 @@ export default function remarkChat() {
   };
 }
 
-const ENTITIES: Record<string, string> = {
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#x27;": "'",
-  "&#39;": "'",
-  "&amp;": "&",
+const NAMED_ENTITIES: Record<string, string> = {
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  amp: "&",
 };
+
+/**
+ * Turn the error box's text back into the message. The serialisers escape
+ * differently — `.md` goes through hast-util-to-html, which writes the
+ * shortest form (`&#x3C;`, `&#x26;`), `.mdx` through Astro's own escaping — so
+ * numeric references are decoded generically rather than listed. One pass,
+ * so an escaped `&amp;lt;` comes back as the `&lt;` the author wrote.
+ */
+function decodeEntities(html: string): string {
+  return html.replace(
+    /&(?:#x([0-9a-f]+)|#(\d+)|(lt|gt|quot|apos|amp));/gi,
+    (entity, hex?: string, decimal?: string, name?: string) => {
+      if (hex) return String.fromCodePoint(parseInt(hex, 16));
+      if (decimal) return String.fromCodePoint(Number(decimal));
+      return NAMED_ENTITIES[name!.toLowerCase()] ?? entity;
+    }
+  );
+}
 
 /**
  * Fail `astro build` when a page carries a chat block error box (see the
@@ -285,9 +302,7 @@ export function chatBlockErrors(): AstroIntegration {
           const html = await readFile(join(root, name), "utf8");
           if (!html.includes("data-chat-error")) continue;
           for (const [, text] of html.matchAll(ERROR_BOX)) {
-            errors.add(
-              text.replace(/&(?:lt|gt|quot|amp|#x27|#39);/g, e => ENTITIES[e])
-            );
+            errors.add(decodeEntities(text));
           }
         }
         if (errors.size > 0) {

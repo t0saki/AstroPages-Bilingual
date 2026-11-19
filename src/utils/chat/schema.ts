@@ -141,22 +141,39 @@ const list = <T extends z.ZodType>(item: T, what: string) =>
       error: `must list at least one ${what.replace(/s$/, "")}`,
     });
 
-/** The only link schemes a block may emit: no `javascript:`, no `//host`. */
-const SAFE_HREF = /^(?:https?:\/\/|\/(?!\/)|#)/i;
-const SAFE_SRC = /^(?:https?:\/\/|\/(?!\/))/i;
+/**
+ * The only link schemes a block may emit: no `javascript:`, and no `//host`
+ * or `/\host`, which browsers resolve as `//host` — another site.
+ */
+const SAFE_HREF = /^(?:https?:\/\/|\/(?![/\\])|#)/i;
+const SAFE_SRC = /^(?:https?:\/\/|\/(?![/\\]))/i;
 
 /**
  * Accepted `max-height` values besides `none`: lengths and the math functions
  * that combine them (`32rem`, `min(30rem, 62svh)`). The value lands in an
  * inline `style`, so the alphabet is kept to what such an expression needs —
- * no `;`, quotes or braces that could start another declaration.
+ * no `;`, quotes or braces that could start another declaration. It must
+ * also contain a number with a unit: a bare `30` or a stray word would be an
+ * invalid value, which the browser drops silently, leaving the block
+ * uncapped while it still announces itself as a scroll region.
  */
 const CSS_LENGTH = /^[0-9a-z.,%() +\-*/]+$/;
+const CSS_DIMENSION = /\d(?:[a-z]+|%)/;
 
-const CAPTION_LINK = /\[([^\]\n]+)\]\(([^()\s]+)\)/g;
+/**
+ * `[text](href)`; the href may hold one level of balanced parentheses, as
+ * Wikipedia's `…/Foo_(bar)` do.
+ */
+const CAPTION_LINK = /\[([^\]\n]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)/g;
 
 const caption = text.transform((value, ctx): ChatCaptionPart[] => {
   const parts: ChatCaptionPart[] = [];
+  let unreadLink = false;
+  const plain = (slice: string) => {
+    // What looks like a link but didn't match would otherwise show as typed.
+    if (slice.includes("](")) unreadLink = true;
+    parts.push({ text: slice });
+  };
   let last = 0;
   for (const match of value.matchAll(CAPTION_LINK)) {
     const [whole, label, href] = match;
@@ -167,19 +184,29 @@ const caption = text.transform((value, ctx): ChatCaptionPart[] => {
       });
       return z.NEVER;
     }
-    if (match.index > last) {
-      parts.push({ text: value.slice(last, match.index) });
-    }
+    if (match.index > last) plain(value.slice(last, match.index));
     parts.push({ text: label, href });
     last = match.index + whole.length;
   }
-  if (last < value.length) parts.push({ text: value.slice(last) });
+  if (last < value.length) plain(value.slice(last));
+  if (unreadLink) {
+    ctx.addIssue({
+      code: "custom",
+      message:
+        "has a [text](link) that can't be read: links may not contain spaces or unbalanced parentheses",
+    });
+    return z.NEVER;
+  }
   return parts;
 });
 
 const maxHeight = text.refine(
-  value => value === "none" || CSS_LENGTH.test(value),
-  { message: 'must be none or a CSS length such as "32rem"' }
+  value =>
+    value === "none" || (CSS_LENGTH.test(value) && CSS_DIMENSION.test(value)),
+  {
+    message:
+      'must be none or a CSS length with a unit, such as "32rem" or "min(30rem, 62svh)"',
+  }
 );
 
 // ---------------------------------------------------------------- people
@@ -345,21 +372,19 @@ const message = z
 const MARKERS = ["time", "note", "gap"] as const;
 type Marker = (typeof MARKERS)[number];
 
+const marker = <K extends Marker>(key: K) =>
+  z.strictObject({ [key]: nonEmptyText } as Record<K, typeof nonEmptyText>, {
+    error: issueFor("a single-key map"),
+  });
+
 const markerSchemas: Record<Marker, z.ZodType<Record<string, string>>> = {
-  time: z.strictObject({ time: nonEmptyText }),
-  note: z.strictObject({ note: nonEmptyText }),
-  gap: z.strictObject({ gap: nonEmptyText }),
+  time: marker("time"),
+  note: marker("note"),
+  gap: marker("gap"),
 };
 
-/**
- * Keys that never start the `- Name: words` shorthand: the entry kinds, and
- * the message fields, so `- text: hi` (a message missing its `from`) is
- * reported as such instead of becoming a speaker called "text". A speaker who
- * really is called that can still talk through `from:`.
- */
-const NOT_SHORTHAND = new Set([
-  ...MARKERS,
-  "from",
+/** The fields of a message besides `from`. */
+const MESSAGE_FIELDS = new Set([
   "text",
   "reply",
   "image",
@@ -367,6 +392,14 @@ const NOT_SHORTHAND = new Set([
   "voice",
   "reactions",
 ]);
+
+/**
+ * Keys that never start the `- Name: words` shorthand: the entry kinds, and
+ * the message fields, so `- text: hi` (a message missing its `from`) is
+ * reported as such instead of becoming a speaker called "text". A speaker who
+ * really is called that can still talk through `from:`.
+ */
+const NOT_SHORTHAND = new Set([...MARKERS, "from", ...MESSAGE_FIELDS]);
 
 const entry = z.unknown().transform((raw, ctx): ChatEntry => {
   if (!isPlainObject(raw)) {
@@ -404,6 +437,20 @@ const entry = z.unknown().transform((raw, ctx): ChatEntry => {
         return z.NEVER;
       }
       return { kind: "message", from: name, text: result.data, reactions: [] };
+    }
+    // `- Ann: hi` followed by `reactions:` and the like: the message schema
+    // would report both a missing `from` and an unknown field "Ann", which
+    // doesn't say what went wrong.
+    const names = keys.filter(key => !NOT_SHORTHAND.has(key));
+    if (
+      names.length === 1 &&
+      keys.every(key => key === names[0] || MESSAGE_FIELDS.has(key))
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: `shorthand "- Name: text" takes no other fields; write from: ${names[0]}, text: … instead`,
+      });
+      return z.NEVER;
     }
   }
 

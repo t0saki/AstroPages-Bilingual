@@ -291,7 +291,7 @@ function message(
   const showBadge = person.badge ?? person.bot;
   body.push(
     h("div", person.self || continued ? "chat__who chat__vh" : "chat__who", [
-      entry.from,
+      ...redacted(entry.from),
       ...(showBadge ? [" ", h("span", "chat__badge", ["Bot"])] : []),
     ]),
     h("span", "chat__sep", [SEPARATOR])
@@ -303,7 +303,7 @@ function message(
     if (entry.reply) {
       bubble.push(
         h("div", "chat__quote", [
-          h("span", "chat__quote-who", [entry.reply.from]),
+          h("span", "chat__quote-who", redacted(entry.reply.from)),
           h("span", "chat__sep", [SEPARATOR]),
           h("span", "chat__quote-text", redacted(entry.reply.text)),
         ])
@@ -340,13 +340,55 @@ function message(
       h(
         "div",
         "chat__reacts",
-        entry.reactions.map(reaction => h("span", "chat__react", [reaction]))
+        entry.reactions.map(reaction =>
+          h("span", "chat__react", redacted(reaction))
+        )
       )
     );
   }
 
   children.push(h("div", "chat__body", body));
   return h("div", { className }, children);
+}
+
+// ---------------------------------------------------------------- height
+
+/**
+ * Whether the feed is sure to fit under the default height cap, so it needn't
+ * be a scroll region: a tab stop that can't scroll is a dead stop for
+ * keyboard users. The height isn't known at build time, so this is a
+ * deliberately pessimistic estimate in CSS pixels, for a 320px-wide phone
+ * (about 14 CJK characters to a bubble line) against the smallest cap the
+ * stylesheet gives (55svh of a 568px-tall screen is ~312px). Anything with an
+ * image, a card or a voice bar is left to scroll. Getting it wrong is cheap:
+ * a feed that runs a little past the cap just isn't capped.
+ */
+const SHORT_FEED_BUDGET = 280;
+
+function isShortFeed(data: ChatData): boolean {
+  let height = 16; // the feed's own padding
+  let previous: string | undefined;
+  for (const entry of data.messages) {
+    if (entry.kind !== "message") {
+      height += 34;
+      previous = undefined;
+      continue;
+    }
+    if (entry.image || entry.card || entry.voice !== undefined) return false;
+    height += previous === entry.from ? 8 : 34; // name row and spacing
+    height += 14; // bubble padding
+    for (const line of (entry.text ?? "").split("\n")) {
+      // East Asian characters take a full em, everything else about half.
+      let width = 0;
+      for (const char of line) width += char.charCodeAt(0) > 0x2e7f ? 1 : 0.55;
+      height += 24 * Math.max(1, Math.ceil(width / 14));
+    }
+    if (entry.reply) height += 46;
+    if (entry.reactions.length > 0) height += 30;
+    previous = entry.from;
+    if (height > SHORT_FEED_BUDGET) return false;
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------- block
@@ -404,7 +446,13 @@ export function renderChat(data: ChatData, id: string): HastElement {
   }
 
   const feedProperties: Properties = { className: ["chat__feed"] };
-  if (data.maxHeight !== "none") {
+  // A block's own `max-height` is taken at its word; under the default cap,
+  // a feed that is sure to fit is laid out whole, like `none`.
+  const scrolls =
+    data.maxHeight === undefined
+      ? !isShortFeed(data)
+      : data.maxHeight !== "none";
+  if (scrolls) {
     // Scrolls on its own: keyboard users need a tab stop to scroll it, and a
     // name so the stop announces what it is. The caption describes the chat
     // best; the title row next; failing both, the speakers' names, which
