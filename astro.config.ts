@@ -27,6 +27,7 @@ import rehypeTocLabels from "./src/utils/rehype/rehypeTocLabels";
 import rehypeTableWrap from "./src/utils/rehype/rehypeTableWrap";
 import rehypeImageAttrs from "./src/utils/rehype/rehypeImageAttrs";
 import rehypeEmphasisParagraph from "./src/utils/rehype/rehypeEmphasisParagraph";
+import remarkChat, { chatBlockErrors } from "./src/utils/remark/remarkChat";
 import config from "./astro-paper.config";
 
 const DEFAULT_LOCALE = "zh";
@@ -89,6 +90,8 @@ export default defineConfig({
 
   integrations: [
     localeNotFoundPages(PREFIXED_LOCALES),
+    // Fails the build on a broken ```chat block (see remarkChat.ts).
+    chatBlockErrors(),
     mdx(),
     sitemap({
       filter: page => {
@@ -122,6 +125,8 @@ export default defineConfig({
         remarkToc,
         [remarkCollapse, { test: "Table of contents" }],
         remarkMath,
+        // ```chat blocks (YAML) → redrawn chat transcripts; see remarkChat.ts.
+        remarkChat,
       ],
       // rehypeTocLabels records clean heading labels for the post TOC; it needs
       // KaTeX's output and the heading ids, so Astro's own rehypeHeadingIds
