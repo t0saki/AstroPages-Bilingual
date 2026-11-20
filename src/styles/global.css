@@ -150,6 +150,16 @@
    the sheet, a native <dialog> in the top layer. Behaviour lives in
    src/scripts/postToc.ts. */
 
+/* Beside the rail, an author-written "Table of contents" (the collapsed list
+   rehypeInlineToc makes of it, deprecated upstream) would be the same list
+   twice. Narrower screens keep it: the floating button only shows on long
+   posts. */
+@media (width >= 80rem) {
+  body:has([data-toc-rail]) #article .toc-inline {
+    display: none;
+  }
+}
+
 /* The rail scrolls on its own once it outgrows the viewport; fade whichever
    end has links hidden past it (`data-fade` is kept current by the script).
    The fades are the scroll cue: a classic scrollbar would stand as one more
