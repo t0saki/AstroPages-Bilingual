@@ -268,6 +268,7 @@ export function getGalleryAlbums(
           title: post.data.title,
           url: getPostUrl(post.id, post.filePath),
           date: new Date(post.data.pubDatetime),
+          timezone: post.data.timezone,
           slug: getPostSlug(post.id, post.filePath)
             .replace(/^\//, "")
             .replaceAll("/", "-"),

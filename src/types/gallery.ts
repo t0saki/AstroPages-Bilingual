@@ -103,6 +103,8 @@ export interface GalleryAlbum {
     title: string;
     url: string;
     date: Date;
+    /** The post's `timezone`; unset means the site timezone */
+    timezone: string | undefined;
     /** Locale-independent post slug, e.g. "japan-travel" — the album's anchor */
     slug: string;
   };

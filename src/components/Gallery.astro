@@ -6,6 +6,7 @@ import { getGalleryFacets } from "@/utils/getGalleryAlbums";
 import { UNKNOWN_FACET } from "@/utils/galleryFacets";
 import IconFilter from "@/assets/icons/IconFilter.svg";
 import config from "@/config";
+import { resolveTimezone } from "@/utils/resolveTimezone";
 
 interface Props {
   albums: GalleryAlbum[];
@@ -16,11 +17,16 @@ const { albums } = Astro.props;
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
 
-const dateFormatter = new Intl.DateTimeFormat(locale, {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
+// Read the date in the post's timezone, as its byline (Datetime.astro) and the
+// archive do; the build machine's zone (UTC on Cloudflare) can put an album a
+// day before its post.
+const formatAlbumDate = ({ date, timezone }: GalleryAlbum["post"]) =>
+  new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: resolveTimezone(timezone ?? config.site.timezone),
+  }).format(date);
 
 // Localized PhotoSwipe button titles / error message, read by the client script.
 const pswpStrings = JSON.stringify({
@@ -203,7 +209,7 @@ const chipClass = [
               class="text-muted-foreground shrink-0 text-sm"
               datetime={album.post.date.toISOString()}
             >
-              {dateFormatter.format(album.post.date)}
+              {formatAlbumDate(album.post)}
             </time>
           </div>
           <div class="g-grid">
