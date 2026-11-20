@@ -86,9 +86,9 @@ const crumbs: Crumb[] = segments.flatMap((segment, index) => {
 
 <nav class="app-layout mt-8 mb-1" aria-label={t.a11y.breadcrumb}>
   <ul
-    class="font-light [&>li]:inline [&>li:not(:last-child)>a]:hover:opacity-100"
+    class="flex flex-wrap items-center gap-x-1 font-light [&>li:not(:last-child)>a]:hover:opacity-100"
   >
-    <li>
+    <li class="flex items-center gap-x-1">
       <a href={getRelativeLocaleUrl(locale, "")} class="opacity-80">
         {t.nav.home}
       </a>
@@ -106,7 +106,7 @@ const crumbs: Crumb[] = segments.flatMap((segment, index) => {
             </span>
           </li>
         ) : (
-          <li>
+          <li class="flex items-center gap-x-1">
             <a {href} class:list={["opacity-70", { capitalize: isSlug }]}>
               {label}
             </a>

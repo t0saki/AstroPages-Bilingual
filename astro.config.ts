@@ -10,8 +10,6 @@ import tailwindcss from "@tailwindcss/vite";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import { rehypeHeadingIds, unified } from "@astrojs/markdown-remark";
-import remarkToc from "remark-toc";
-import remarkCollapse from "remark-collapse";
 import remarkMath from "remark-math";
 import rehypeCallouts from "rehype-callouts";
 import rehypeKatex from "rehype-katex";
@@ -27,6 +25,10 @@ import rehypeTocLabels from "./src/utils/rehype/rehypeTocLabels";
 import rehypeTableWrap from "./src/utils/rehype/rehypeTableWrap";
 import rehypeImageAttrs from "./src/utils/rehype/rehypeImageAttrs";
 import rehypeEmphasisParagraph from "./src/utils/rehype/rehypeEmphasisParagraph";
+import {
+  inlineTocDeprecation,
+  rehypeInlineToc,
+} from "./src/utils/rehypeInlineToc";
 import config from "./astro-paper.config";
 
 const DEFAULT_LOCALE = "zh";
@@ -100,32 +102,35 @@ export default defineConfig({
         // Exclude archives when the feature is disabled.
         if (
           config.features?.showArchives === false &&
-          page.endsWith("/archives/")
+          /\/archives\/?$/.test(page)
         ) {
           return false;
         }
         // Exclude gallery when the feature is disabled.
         if (
           config.features?.gallery?.enabled !== true &&
-          page.endsWith("/gallery/")
+          /\/gallery\/?$/.test(page)
         ) {
           return false;
         }
         return true;
       },
     }),
+    inlineTocDeprecation(),
   ],
 
   markdown: {
+    // Deprecated: the theme no longer uses remark-toc or remark-collapse. They
+    // stay in package.json so a customised config importing them still builds,
+    // and are removed in v8.
     processor: unified({
-      remarkPlugins: [
-        remarkToc,
-        [remarkCollapse, { test: "Table of contents" }],
-        remarkMath,
-      ],
+      remarkPlugins: [remarkMath],
       // rehypeTocLabels records clean heading labels for the post TOC; it needs
       // KaTeX's output and the heading ids, so Astro's own rehypeHeadingIds
       // runs early here (its final pass keeps these ids unchanged).
+      // rehypeInlineToc (deprecated upstream) turns an author-written
+      // "## Table of contents" heading into a collapsed list; it needs the ids
+      // too, and removes that heading before rehypeTocLabels sees it.
       // rehypeGalleryMarker drops the `"gallery"`/`"nogallery"` image titles so
       // they never surface as tooltips; rehypeVideoEmbed then turns
       // `![caption](…/clip.mp4)` lines into real <video> players, and
@@ -140,6 +145,7 @@ export default defineConfig({
         rehypeCallouts,
         rehypeKatex,
         rehypeHeadingIds,
+        rehypeInlineToc,
         rehypeTocLabels,
         rehypeGalleryMarker,
         rehypeVideoEmbed,

@@ -4,6 +4,7 @@ import satori from "satori";
 import sharp from "sharp";
 import { getOgFonts } from "@/utils/getOgFonts";
 import { getPostSlug } from "@/utils/getPostPaths";
+import { postFilter } from "@/utils/postFilter";
 import config from "@/config";
 
 export async function getStaticPaths() {
@@ -13,7 +14,7 @@ export async function getStaticPaths() {
 
   const posts = await getCollection("posts", ({ id }) =>
     id.startsWith("zh/")
-  ).then(p => p.filter(({ data }) => !data.draft && !data.ogImage));
+  ).then(p => p.filter(post => postFilter(post) && !post.data.ogImage));
 
   return posts.map(post => ({
     params: { slug: getPostSlug(post.id, post.filePath) },
@@ -35,6 +36,7 @@ export const GET: APIRoute = async ({ props, url }) => {
 
   const svg = await satori(
     {
+      key: null,
       type: "div",
       props: {
         style: {
@@ -53,6 +55,7 @@ export const GET: APIRoute = async ({ props, url }) => {
                 position: "absolute",
                 top: "-1px",
                 right: "-1px",
+                boxSizing: "border-box",
                 border: "4px solid #000",
                 background: "#ecebeb",
                 opacity: "0.9",
@@ -69,6 +72,8 @@ export const GET: APIRoute = async ({ props, url }) => {
             type: "div",
             props: {
               style: {
+                position: "relative",
+                boxSizing: "border-box",
                 border: "4px solid #000",
                 background: "#fefbfb",
                 borderRadius: "4px",
@@ -96,7 +101,8 @@ export const GET: APIRoute = async ({ props, url }) => {
                         style: {
                           fontSize: 72,
                           fontWeight: "bold",
-                          maxHeight: "84%",
+                          margin: "17px 0 0",
+                          maxHeight: "80%",
                           overflow: "hidden",
                         },
                         children: props.data.title,
@@ -118,13 +124,6 @@ export const GET: APIRoute = async ({ props, url }) => {
                             props: {
                               children: [
                                 "by ",
-                                {
-                                  type: "span",
-                                  props: {
-                                    style: { color: "transparent" },
-                                    children: '"',
-                                  },
-                                },
                                 {
                                   type: "span",
                                   props: {

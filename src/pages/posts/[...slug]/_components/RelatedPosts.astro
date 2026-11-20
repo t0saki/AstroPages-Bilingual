@@ -3,6 +3,7 @@ import { getPostUrl } from "@/utils/getPostPaths";
 import type { RelatedPost } from "@/utils/getRelatedPosts";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
+import { resolveTimezone } from "@/utils/resolveTimezone";
 
 type Props = {
   posts: RelatedPost[];
@@ -20,7 +21,7 @@ const formatDate = ({ datetime, timezone }: RelatedPost) =>
     year: "numeric",
     month: "short",
     day: "numeric",
-    timeZone: timezone ?? config.site.timezone,
+    timeZone: resolveTimezone(timezone ?? config.site.timezone),
   }).format(datetime);
 ---
 

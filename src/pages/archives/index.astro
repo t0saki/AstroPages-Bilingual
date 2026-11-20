@@ -54,7 +54,7 @@ const monthFormatter = new Intl.DateTimeFormat(locale, {
         .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
         .map(([year, yearGroup]) => (
           <section class="mb-10">
-            <h2 class="inline text-2xl font-bold">{year}</h2>
+            <h2 class="inline text-2xl font-bold">{year}</h2>{" "}
             <sup aria-hidden="true" class="text-muted-foreground text-sm">
               {yearGroup.length}
             </sup>
@@ -73,7 +73,7 @@ const monthFormatter = new Intl.DateTimeFormat(locale, {
                       {monthFormatter.format(
                         Date.UTC(2000, Number(month) - 1, 1)
                       )}
-                    </h3>
+                    </h3>{" "}
                     <sup
                       aria-hidden="true"
                       class="text-muted-foreground text-xs"

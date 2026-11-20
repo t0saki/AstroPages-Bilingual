@@ -156,6 +156,21 @@
       th:not(:where(.not-prose, .not-prose *)) {
         @apply py-1.5;
       }
+
+      th[align="center"]:not(:where(.not-prose, .not-prose *)),
+      td[align="center"]:not(:where(.not-prose, .not-prose *)) {
+        text-align: center;
+      }
+
+      th[align="right"]:not(:where(.not-prose, .not-prose *)),
+      td[align="right"]:not(:where(.not-prose, .not-prose *)) {
+        text-align: right;
+      }
+
+      th[align="left"]:not(:where(.not-prose, .not-prose *)),
+      td[align="left"]:not(:where(.not-prose, .not-prose *)) {
+        text-align: left;
+      }
     }
 
     code:not(:where(.not-prose, .not-prose *)) {

@@ -9,6 +9,8 @@ import { DEFAULT_LOCALE, LOCALES } from "@/i18n/helpers";
 import config from "@/config";
 import "@/styles/global.css";
 import "@chinese-fonts/sypxzs/dist/思源屏显臻宋/result.css";
+import CustomHead from "@/custom/Head.astro";
+import CustomBodyEnd from "@/custom/BodyEnd.astro";
 
 type Props = {
   title?: string;
@@ -205,6 +207,8 @@ const redirectTargets = Object.fromEntries(
     </script>
 
     <ClientRouter />
+
+    <CustomHead {title} {description} />
   </head>
   <body
     class="bg-background font-app text-foreground selection:bg-accent/75 selection:text-accent-foreground flex min-h-svh flex-col"
@@ -215,5 +219,6 @@ const redirectTargets = Object.fromEntries(
       import "@/scripts/reloadSwappedMedia";
       import "@/scripts/instantScrollRestore";
     </script>
+    <CustomBodyEnd />
   </body>
 </html>

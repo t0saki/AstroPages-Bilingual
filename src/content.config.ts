@@ -27,7 +27,13 @@ const posts = defineCollection({
       // Table of contents override: `false` hides it, `true` shows it even
       // below `features.toc.minHeadings`; unset follows the threshold.
       toc: z.boolean().optional(),
-      timezone: z.string().optional(),
+      // Upstream AstroPaper's spelling of `toc: false`.
+      hideToc: z.boolean().optional(),
+      // An empty value means "not set", so the site timezone applies.
+      timezone: z
+        .string()
+        .optional()
+        .transform(tz => tz || undefined),
     }),
 });
 

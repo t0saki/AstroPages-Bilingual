@@ -32,12 +32,12 @@ const homePath = getRelativeLocaleUrl(locale, "");
     id="main-content"
     data-layout="index"
     data-home-path={homePath}
-    class="app-layout"
+    class="app-layout my-1"
   >
     <section id="hero" class="border-border border-b pt-8 pb-6">
       <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">
         你好
-      </h1>
+      </h1>{" "}
       <a
         target="_blank"
         href={getFeedPath(locale)}
@@ -58,13 +58,13 @@ const homePath = getRelativeLocaleUrl(locale, "");
         i18n 路由：中文文章位于站点根路径，英文文章位于 <code>/en/</code> 下。 默认支持明暗主题、静态全文搜索与代码高亮。
       </p>
       <p class="mt-2">
-        浏览下面的文章，或通过页眉右上角切换到
+        浏览下面的文章，或通过页眉右上角切换到{" "}
         <LinkButton
           class="hover:text-accent underline decoration-dashed underline-offset-4"
           href={getRelativeLocaleUrl("en", "")}
         >
           English
-        </LinkButton>
+        </LinkButton>{" "}
         版本。
       </p>
       {

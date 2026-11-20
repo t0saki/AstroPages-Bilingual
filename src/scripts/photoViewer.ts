@@ -99,8 +99,7 @@ export function createViewer(
         el.className = "pswp-caption";
         const update = () => {
           const element = pswp.currSlide?.data?.element as
-            | HTMLElement
-            | undefined;
+            HTMLElement | undefined;
           const cap = (captionFor ?? captionFromElement)(element);
           el.replaceChildren();
           const lines: Array<[string | undefined, string]> = [

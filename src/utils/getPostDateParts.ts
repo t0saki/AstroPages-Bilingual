@@ -1,5 +1,6 @@
 import type { CollectionEntry } from "astro:content";
 import config from "@/config";
+import { resolveTimezone } from "./resolveTimezone";
 
 /**
  * Calendar year, month (1–12) and day of a post's `pubDatetime`, read in the
@@ -14,7 +15,7 @@ import config from "@/config";
  */
 export function getPostDateParts({ data }: CollectionEntry<"posts">) {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: data.timezone ?? config.site.timezone,
+    timeZone: resolveTimezone(data.timezone ?? config.site.timezone),
     year: "numeric",
     month: "numeric",
     day: "numeric",

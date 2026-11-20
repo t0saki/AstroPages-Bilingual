@@ -2,6 +2,7 @@
 import IconCalendar from "@/assets/icons/IconCalendar.svg";
 import config from "@/config";
 import { tplStr, useTranslations } from "@/i18n";
+import { resolveTimezone } from "@/utils/resolveTimezone";
 
 type Props = {
   class?: string;
@@ -44,7 +45,7 @@ const dateFormatter = new Intl.DateTimeFormat(locale, {
   year: "numeric",
   month: "short",
   day: "numeric",
-  timeZone: postTimezone ?? config.site.timezone,
+  timeZone: resolveTimezone(postTimezone ?? config.site.timezone),
 });
 const date = dateFormatter.format(datetime);
 

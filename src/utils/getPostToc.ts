@@ -9,6 +9,8 @@ type PostTocInput = {
   labels?: Record<string, string>;
   /** The post's `toc` frontmatter: `false` hides, `true` forces. */
   toc?: boolean;
+  /** The post's `hideToc` frontmatter, upstream's spelling of `toc: false`. */
+  hideToc?: boolean;
 };
 
 /**
@@ -20,9 +22,10 @@ export function getPostToc({
   headings,
   labels,
   toc,
+  hideToc,
 }: PostTocInput): { items: TocItem[]; forced: boolean } | null {
   const tocConfig = config.features.toc;
-  if (!tocConfig.enabled || toc === false) return null;
+  if (!tocConfig.enabled || toc === false || hideToc) return null;
 
   const items = getTocItems(headings, { maxDepth: tocConfig.maxDepth, labels });
   const forced = toc === true;

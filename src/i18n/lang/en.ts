@@ -17,6 +17,7 @@ export default {
     sharePostOn: "Share this post on {{platform}}",
     sharePostViaEmail: "Share this post via email",
     backToTop: "Back to top",
+    tableOfContents: "Table of contents",
     goBack: "Go back",
     editPage: "Edit page",
     previousPost: "Previous Post",
@@ -95,6 +96,7 @@ export default {
   },
   a11y: {
     skipToContent: "Skip to content",
+    skipTableOfContents: "Skip table of contents",
     openMenu: "Open menu",
     closeMenu: "Close menu",
     toggleTheme: "Toggle theme",

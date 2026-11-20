@@ -16,15 +16,20 @@ import {
 
 const DEFAULT_OG_IMAGE = "default-og.jpg";
 
-/** On unless explicitly disabled; thresholds filled in either way. */
+/**
+ * On unless explicitly disabled; thresholds filled in either way. Upstream's
+ * boolean form (`toc: true` / `toc: false`) is accepted as a shorthand.
+ */
 function resolveToc(
   toc: NonNullable<AstroPaperConfig["features"]>["toc"]
 ): ResolvedAstroPaperConfig["features"]["toc"] {
-  if (toc?.enabled === false) return { enabled: false };
+  if (toc === false) return { enabled: false };
+  const options = typeof toc === "object" ? toc : undefined;
+  if (options?.enabled === false) return { enabled: false };
   return {
     enabled: true,
-    minHeadings: toc?.minHeadings ?? 3,
-    maxDepth: toc?.maxDepth ?? 3,
+    minHeadings: options?.minHeadings ?? 3,
+    maxDepth: options?.maxDepth ?? 3,
   };
 }
 
@@ -63,8 +68,8 @@ const config: ResolvedAstroPaperConfig = {
   posts: {
     perPage: userConfig.posts?.perPage ?? 4,
     perIndex: userConfig.posts?.perIndex ?? 4,
-    scheduledPostMargin:
-      userConfig.posts?.scheduledPostMargin ?? 15 * 60 * 1000,
+    // Deprecated and unused. Not read from userConfig, so builds don't warn about it.
+    scheduledPostMargin: 15 * 60 * 1000,
   },
   features: {
     lightAndDarkMode: userConfig.features?.lightAndDarkMode ?? true,
