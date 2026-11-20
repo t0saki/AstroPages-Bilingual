@@ -22,7 +22,6 @@ Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refac
 - **Chinese Font**: bundled Source Han Serif (`@chinese-fonts/sypxzs`).
 - **Static Full-Text Search**: [Pagefind](https://pagefind.app/), indexed per language, with optional semantic results from Cloudflare AI Search (see [Semantic search](#-semantic-search-optional)).
 - **Math Formulas**: LaTeX math embedded in Markdown, rendered at build time by [KaTeX](https://katex.org/) (remark-math + rehype-katex) — no client-side JS.
-- **Chat Transcripts**: write a chat as YAML in a `chat` code block and it is redrawn at build time as a themed, selectable, searchable transcript, with bots, quoted replies, reactions, redactions and placeholder cards (see [Chat transcripts](#chat-transcripts)).
 - **Photo Gallery**: a `/gallery` page collecting image-host photos from posts marked `gallery: true`, grouped by post, with EXIF (camera / lens / settings) on hover and a [PhotoSwipe](https://photoswipe.com/) lightbox. Filterable by camera, lens and focal length. Thumbnails and EXIF are pre-generated into the repo (see [Photo Gallery](#-photo-gallery)).
 - **Table of Contents**: posts with enough headings get a TOC — a sticky rail beside the article on wide screens (≥1280px) that highlights the section you're reading, and a floating button that opens it as a sheet on smaller ones (see [Table of contents](#table-of-contents)).
 - **SEO Optimized**: multi-language meta tags, sitemap, and OpenGraph pre-configured.
@@ -161,42 +160,6 @@ shareLinks: [
   { name: "mail", url: "mailto:?subject={title}&body={url}" },
 ],
 ```
-
-### Chat transcripts
-
-A fenced block tagged `chat` holds YAML and is redrawn at build time as a chat transcript (a `<figure>`), in `.md` and `.mdx` alike:
-
-````md
-```chat
-title: Weekend plans
-meta: Group chat · May 2026
-caption: Redrawn from a screenshot; names changed. [Source](https://example.com)
-people:
-  Helper: { bot: true }
-  Me: { self: true }
-  Sam: { avatar: S, color: 3 }
-messages:
-  - time: "20:40"
-  - Sam: Hiking this weekend?
-  - Me: "@Helper what's the weather like?"
-  - from: Helper
-    reply: { from: Me, text: "@Helper what's the weather like?" }
-    text: |
-      Cloudy on Saturday, rain on Sunday.
-
-      Saturday it is.
-    reactions: ["👍 2"]
-  - note: Helper recalled a message
-  - gap: 12 messages skipped
-```
-````
-
-- **Top level** (all optional except `messages`): `title` / `meta` fill the left and right of the title row; `caption` is the figure caption, plain text plus `[text](link)` links (to `http(s)://`, `/` or `#`); `wide: true` uses a wider layout; `max-height` defaults to about 28rem with scrolling inside the frame — `none` lays the whole chat out (a good choice for a chat of two or three messages), a CSS length (e.g. `"min(30rem, 62svh)"`) sets this block's own cap.
-- **`people`**, keyed by display name, all optional: `bot` (accent outline and a Bot badge; `badge: false` hides the badge), `self` (right-aligned, no avatar or name), `avatar` (the avatar's text, default the name's first character), `color` (1–6, dealt in order of appearance by default).
-- **`messages`**, one per item: `time` (a timestamp), `note` (a system notice), `gap` (messages left out), or a message. `- Name: text` is short for `{ from: Name, text: text }`; the long form is `from` plus any of `text`, `reply: { from, text }` (a quoted reply), `image: { src, alt, width?, height? }` (`src` starting with `http(s)://` or `/`), `voice: seconds`, `reactions: ["👍 2"]` and `card` — at least one of `text` / `image` / `card` / `voice`. The shorthand takes no other fields, and `time`, `note`, `gap`, `from`, `text`, `reply`, `image`, `card`, `voice` and `reactions` can't be shorthand names — someone called that talks through `from:`.
-- **`card`** is a placeholder that sketches a rich card or an image you'd rather not reproduce: `{ label?, inline?, rows }`, inside the text bubble when `inline: true`. Each row has one key: `title` / `heading` / `text` (text), `lines` / `bullets` (grey bars, widths in percent such as `[90, 60]`), `rule: true` (a divider), `stats` (`{ key: value }` tiles), `tiles` (a number of squares), `plot` (`[[x%, y%], …]`, dots on a grid).
-- **Text** shows as typed — no Markdown. Blank lines start paragraphs, line breaks are kept; `@Name` (anyone in the block) is highlighted; `` `code` `` (message text only) is set in monospace; runs of `█` become redaction bars. Unquoted, YAML reads `666` and `true` as a number and a boolean, which are taken as text — but `0.10` turns into `0.1` and `2026-05-01` into a date (an error), so quote anything that must stay exactly as written.
-- Mistakes (YAML syntax, unknown fields, a missing `from`, …) fail the build, naming the file, line and field; under `astro dev` the error shows in place of the block. Chat blocks don't count towards the reading time.
 
 ## 📸 Photo Gallery
 
@@ -338,7 +301,6 @@ pnpm build                   # verify
 - `src/components/LanguageSwitcher.astro` + the redirect script in `src/layouts/Layout.astro`, both fed by `src/utils/resolveAlternate.ts` (which pages exist in each language: a new page needs a route file in both `src/pages/` and `src/pages/[lang]/` to get a counterpart link and `hreflang`).
 - `src/styles/theme.css` `--font-app` (CJK stack) + the font import in `src/layouts/Layout.astro`.
 - `_redirects`, `package.json` (deploy-related deps & scripts).
-- `src/utils/remark/remarkChat.ts`, `src/utils/chat/`, `src/styles/chat.css` — chat transcript blocks (all new files); hooked in by one import line in `astro.config.ts` (`remarkChat, chatBlockErrors`) plus one entry each in `remarkPlugins` and `integrations` (with their comments), and one `@import` in `src/styles/global.css`.
 
 ## 📜 License
 
