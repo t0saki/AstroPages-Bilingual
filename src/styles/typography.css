@@ -41,7 +41,17 @@
     text-emphasis: none;
   }
 
-  /* ===== Override default Tailwind Typography styles ===== */
+  /* ===== Override default Tailwind Typography styles =====
+     `not-prose` is the article's one boundary: the plugin's own rules skip a
+     `.not-prose` subtree, and so do these, so a component placed in a post
+     (README, "Per-post components") gets none of the article's styling. The
+     guard sits on the element each rule styles, so it also catches a
+     `.not-prose` nested inside, say, an article table cell, and `:where()`
+     keeps it at zero specificity: everything outside such a subtree matches
+     exactly as before. The enhancement scripts (postEnhance.ts,
+     PostImages.astro) honour the same boundary. Two rules below describe
+     wrappers the framework itself adds rather than the author's elements, and
+     say why they differ: the viewer's images and `.table-wrap`. */
   .app-prose {
     @apply prose;
     /* Break a token that can't fit rather than let it spill out of the
@@ -80,29 +90,29 @@
     --tw-prose-th-borders: var(--border);
     --tw-prose-td-borders: var(--border);
 
-    h1,
-    h2,
-    h3,
-    h4 {
+    h1:not(:where(.not-prose, .not-prose *)),
+    h2:not(:where(.not-prose, .not-prose *)),
+    h3:not(:where(.not-prose, .not-prose *)),
+    h4:not(:where(.not-prose, .not-prose *)) {
       @apply mb-3;
     }
 
     /* Not in Chinese, where there is no italic (see :lang(zh) above). Said
        here as well because the monospace font of `code` in a heading does
        have a real italic, which would slant just those words. */
-    h3:not(:lang(zh)) {
+    h3:not(:lang(zh)):not(:where(.not-prose, .not-prose *)) {
       @apply italic;
     }
 
-    a {
+    a:not(:where(.not-prose, .not-prose *)) {
       @apply hover:text-accent wrap-break-word decoration-dashed underline-offset-4 focus-visible:no-underline;
     }
 
-    ul {
+    ul:not(:where(.not-prose, .not-prose *)) {
       @apply overflow-x-clip;
     }
 
-    img {
+    img:not(:where(.not-prose, .not-prose *)) {
       @apply border-border mx-auto border;
     }
 
@@ -113,18 +123,23 @@
        completely. JPEG and AVIF — photo formats — are skipped: an image whose
        size is known before it loads would otherwise show as a light box until
        it arrives. Not <video>: its black letterbox is meant. */
-    img:not([src*=".jpg" i], [src*=".jpeg" i], [src*=".avif" i]) {
+    img:not([src*=".jpg" i], [src*=".jpeg" i], [src*=".avif" i]):not(
+        :where(.not-prose, .not-prose *)
+      ) {
       @apply dark:bg-[color-mix(in_oklab,var(--foreground)_85%,var(--background))];
     }
 
     /* Inline players from `![caption](…/clip.mp4)` lines — see
        src/utils/rehype/rehypeVideoEmbed.ts. Matched to the image treatment so a
        post mixing the two reads as one column. */
-    video {
+    video:not(:where(.not-prose, .not-prose *)) {
       @apply border-border mx-auto block h-auto max-w-full border bg-black;
     }
 
-    img[role="button"] {
+    /* The images the post's image viewer manages (PostImages.astro gives them
+       the role): any outside a `.not-prose` subtree, plus a component's own
+       `<img data-zoomable>` inside one. */
+    img[role="button"]:where(:not(.not-prose, .not-prose *), [data-zoomable]) {
       @apply cursor-zoom-in;
 
       &:focus-visible {
@@ -133,21 +148,21 @@
     }
 
     table {
-      th,
-      td {
+      th:not(:where(.not-prose, .not-prose *)),
+      td:not(:where(.not-prose, .not-prose *)) {
         @apply border-border border p-2;
       }
 
-      th {
+      th:not(:where(.not-prose, .not-prose *)) {
         @apply py-1.5;
       }
     }
 
-    code {
+    code:not(:where(.not-prose, .not-prose *)) {
       @apply bg-muted/75 rounded p-1 wrap-break-word before:content-none after:content-none;
     }
 
-    .astro-code code {
+    .astro-code code:not(:where(.not-prose, .not-prose *)) {
       @apply flex-[1_0_100%] bg-inherit p-0;
     }
 
@@ -155,29 +170,37 @@
        author never typed — wrong for asides and disclaimers, and synthesised
        italic besides. Keep them upright and unquoted; the rule and the
        dimming set them apart. */
-    blockquote {
+    blockquote:not(:where(.not-prose, .not-prose *)) {
       @apply wrap-break-word not-italic opacity-80;
 
-      p:first-of-type::before,
-      p:last-of-type::after {
+      p:first-of-type:not(:where(.not-prose, .not-prose *))::before,
+      p:last-of-type:not(:where(.not-prose, .not-prose *))::after {
         content: none;
       }
     }
 
-    details:not(.callout) {
-      @apply inline-block cursor-pointer select-none [&_p]:hidden [&_ul]:my-0!;
+    details:not(.callout):not(:where(.not-prose, .not-prose *)) {
+      @apply inline-block cursor-pointer select-none;
+
+      p:not(:where(.not-prose, .not-prose *)) {
+        @apply hidden;
+      }
+
+      ul:not(:where(.not-prose, .not-prose *)) {
+        @apply my-0!;
+      }
     }
 
-    summary {
+    summary:not(:where(.not-prose, .not-prose *)) {
       @apply focus-visible:outline-accent focus-visible:no-underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-dashed;
     }
 
-    pre {
+    pre:not(:where(.not-prose, .not-prose *)) {
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
     }
 
     /* Allow wide KaTeX display equations to scroll horizontally on narrow screens */
-    .katex-display {
+    .katex-display:not(:where(.not-prose, .not-prose *)) {
       @apply overflow-x-auto overflow-y-hidden;
     }
 
@@ -198,7 +221,11 @@
        that fits it would only widen short numeric columns and squeeze the
        text column beside them. The floor only ever widens the table, so it
        can't toggle the query that applies it. Browsers without scroll-state
-       queries keep the plain min-content layout. */
+       queries keep the plain min-content layout.
+       Not guarded: the plugin wraps every table written in a post's body, one
+       inside a `.not-prose` wrapper included, and a wrapper that didn't scroll
+       there would be a tab stop that does nothing. A component's own markup
+       never reaches the plugin. */
     .table-wrap {
       @apply focus-visible:outline-accent my-[1.75em] overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dashed;
 

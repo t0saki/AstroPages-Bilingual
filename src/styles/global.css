@@ -325,7 +325,9 @@
   html.dark .callout[data-callout] {
     --rc-color-dark: var(--rc-color-light);
   }
-  .app-prose img {
+  /* Undoes the dark-theme diagram backdrop (typography.css), so it skips
+     `.not-prose` subtrees just as that rule does. */
+  .app-prose img:not(:where(.not-prose, .not-prose *)) {
     background-color: transparent;
   }
 
