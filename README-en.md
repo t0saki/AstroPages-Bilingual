@@ -70,7 +70,7 @@ pnpm dev
 5.  Click **Save and Deploy**.
 6.  **Note**: After deployment, it is recommended to **disable Rocket Loader** in Cloudflare Dashboard under **Speed > Optimization**. Rocket Loader interferes with Astro's Client Router (View Transitions), causing issues with page navigation and script execution.
 
-> Legacy links: the root `_redirects` file is copied into `dist/` at build time and 301-redirects historical `/zh/*` paths to the site root.
+> Legacy links: `public/_redirects` is copied to `dist/` with the other static files and 301-redirects historical `/zh/*` paths to the site root.
 
 ### Configure Production CMS (`keystatic-workers` branch only)
 
@@ -111,8 +111,7 @@ To edit content on the live site (`/keystatic`), connect Keystatic to GitHub:
 │   ├── i18n/                # UI strings (lang/zh.ts, lang/en.ts) + bilingual helpers
 │   └── components/          # Shared UI (incl. LanguageSwitcher)
 │       └── posts/<slug>/    # A post's own components (shared by zh and en)
-├── _redirects              # Cloudflare Pages redirects (copied to dist/ at build)
-└── public/                 # Static assets
+└── public/                 # Static assets (incl. Cloudflare Pages _redirects)
 ```
 
 ## 📝 Writing Content
@@ -356,7 +355,7 @@ pnpm build                   # verify
 - `src/components/LanguageSwitcher.astro` + the redirect script in `src/layouts/Layout.astro`, both fed by `src/utils/resolveAlternate.ts` (which pages exist in each language: a new page needs a route file in both `src/pages/` and `src/pages/[lang]/` to get a counterpart link and `hreflang`).
 - `src/styles/typography.css` — every article override carries `:not(:where(.not-prose, .not-prose *))`; keep that guard on rules added or changed when merging upstream (see [Per-post components](#per-post-components)).
 - `src/styles/theme.css` `--font-app` (CJK stack) + the font import in `src/layouts/Layout.astro`.
-- `_redirects`, `package.json` (deploy-related deps & scripts).
+- `public/_redirects`, `package.json` (deploy-related deps & scripts).
 
 ## 📜 License
 

@@ -70,7 +70,7 @@ pnpm dev
 5. 点击 **Save and Deploy**。
 6. **注意**：部署完成后，建议在 Cloudflare Dashboard 的 **Speed > Optimization** 中**关闭 Rocket Loader**。Rocket Loader 会干扰 Astro 的客户端路由（View Transitions），导致页面导航和脚本执行异常。
 
-> 旧链接兼容：根目录的 `_redirects` 会在构建时拷入 `dist/`，把历史的 `/zh/*` 路径 301 重定向到根路径。
+> 旧链接兼容：`public/_redirects` 随其他静态文件原样输出到 `dist/`，把历史的 `/zh/*` 路径 301 重定向到根路径。
 
 ### 配置生产环境 CMS（仅 `keystatic-workers` 分支）
 
@@ -115,8 +115,7 @@ pnpm dev
 │   ├── i18n/                # UI 文案（lang/zh.ts、lang/en.ts）+ 双语 helper
 │   └── components/          # 通用 UI 组件（含 LanguageSwitcher）
 │       └── posts/<slug>/    # 单篇文章自带的组件（中英两版共用）
-├── _redirects              # Cloudflare Pages 重定向（构建时拷入 dist/）
-└── public/                 # 静态资源
+└── public/                 # 静态资源（含 Cloudflare Pages 的 _redirects）
 ```
 
 ## 📝 撰写内容
@@ -364,7 +363,7 @@ pnpm build                   # 验证构建
 - `src/components/LanguageSwitcher.astro` + `src/layouts/Layout.astro` 的语言重定向脚本，二者都依赖 `src/utils/resolveAlternate.ts`（判断各语言有哪些页面：新页面要在 `src/pages/` 和 `src/pages/[lang]/` 下都有路由文件，才会生成对应语言的链接和 `hreflang`）。
 - `src/styles/typography.css` — 正文排版覆盖规则都带 `:not(:where(.not-prose, .not-prose *))`，合并上游新增或改动的规则时要保留这个守卫（见 [文章自带组件](#文章自带组件)）。
 - `src/styles/theme.css` 的 `--font-app`（中文字体栈）+ `src/layouts/Layout.astro` 的字体导入。
-- `_redirects`、`package.json`（部署相关依赖与脚本）。
+- `public/_redirects`、`package.json`（部署相关依赖与脚本）。
 
 ## 📜 本次 v6.1 重构要点
 
