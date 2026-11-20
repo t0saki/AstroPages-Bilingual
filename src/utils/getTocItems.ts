@@ -20,9 +20,9 @@ type TocOptions = {
 };
 
 /**
- * The heading remark-toc fills in (its default `heading` option), plus the
- * Chinese word authors use for the same thing. Listing the post's own inline
- * TOC inside the TOC would only point at itself.
+ * Headings that title an inline TOC. rehypeInlineToc already takes the first
+ * English one out of `headings`; a repeat of it, or the Chinese "目录" it
+ * doesn't match, would otherwise list a TOC inside the TOC.
  */
 const INLINE_TOC_HEADING = /^(table[ -]of[ -])?contents?$|^toc$|^目录$/i;
 

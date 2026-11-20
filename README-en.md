@@ -6,15 +6,15 @@
 
 [My Blog](https://t0saki.com) also uses this template.
 
-A modern, high-performance bilingual blog template built with [Astro v6](https://astro.build) (tracking upstream [astro-paper](https://github.com/satnaing/astro-paper) **v6.1**) and [Cloudflare Pages](https://pages.cloudflare.com).
+A modern, high-performance bilingual blog template built with [Astro v7](https://astro.build) (tracking upstream [astro-paper](https://github.com/satnaing/astro-paper) **v7.2**) and [Cloudflare Pages](https://pages.cloudflare.com).
 
 Visitors get **Static Site Generation (SSG)** for extreme performance. An optional, Git-based [Keystatic CMS](https://keystatic.com) (no database) is preserved on the `keystatic-workers` branch — see [Branches](#-branches) below.
 
-Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refactored for native i18n, Astro 6, and robust engineering.
+Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refactored for native i18n, Astro 7, and robust engineering.
 
 ## ✨ Features
 
-- **Astro v6 Native i18n**: Full routing structure with Chinese at root `/` and English at `/en/`, with a language switcher and first-visit language redirect.
+- **Astro v7 Native i18n**: Full routing structure with Chinese at root `/` and English at `/en/`, with a language switcher and first-visit language redirect.
 - **Pure Static Output (SSG)**: The default branch is fully static and deploys to Cloudflare Pages — no server runtime needed.
 - **Optional Keystatic CMS**: Git-based Headless CMS (`keystatic-workers` branch).
 - **Type-Safe Content**: rigorous `astro:content` schema validation for all blog posts.
@@ -31,7 +31,7 @@ Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refac
 
 ### 1. Requirements
 
-- Node.js **v22.12+** (required by Astro 6)
+- Node.js **v22.23.4+** (required by Astro 7)
 - GitHub Account (only for the Keystatic CMS)
 - Cloudflare Account (optional, for deployment)
 
@@ -140,7 +140,9 @@ features: {
 },
 ```
 
-Per post, frontmatter overrides it: `toc: false` hides it, `toc: true` shows it even below the threshold. A remark-toc "Table of contents" / "目录" heading in the body is never listed.
+Per post, frontmatter overrides it: `toc: false` hides it, `toc: true` shows it even below the threshold; upstream's spelling `hideToc: true` is the same as `toc: false`. `features.toc` also takes a plain `true` (on, default thresholds) or `false` (off site-wide).
+
+A "Table of contents" heading in the body (also `Contents` or `TOC`, any case) is upstream's older way of adding a TOC: `src/utils/rehypeInlineToc.js` replaces the first such heading with a collapsed list whose toggle carries the heading's text and which lists the headings after it; it is no longer a heading, so the page TOC doesn't list it. Upstream marks this deprecated and removes it in v8, the build warns about posts that still have one, and new posts don't need it. A "目录" heading is left alone and shown as written, but the page TOC doesn't list it either.
 
 ### Reading time
 
@@ -214,6 +216,16 @@ When a post moves from `.md` to `.mdx` (each point checked by compiling a sample
 - Indented (four-space) code blocks become plain paragraphs; use ``` fences.
 - Keystatic on the `keystatic-workers` branch only reads `.md`, so a post moved to `.mdx` doesn't show up in the admin UI.
 - Posts under `src/content/` (`.md` and `.mdx` alike) are skipped by prettier (see `.prettierignore`), but components under `src/components/posts/` are code like any other and must pass `format:check` and `lint`.
+
+### Custom slots
+
+The three components in `src/custom/` are where a site built on this template puts its own additions:
+
+- `src/custom/Head.astro`: rendered at the end of `<head>` on every page, after the theme's own tags. For analytics, site verification tags, extra `<meta>` / `<link>`. It receives the page's `title` and `description`.
+- `src/custom/BodyEnd.astro`: rendered right before `</body>` on every page.
+- `src/custom/PostEnd.astro`: rendered on every post page in both languages, after the share links and before the related posts and the previous / next links. It receives `post` (the post's collection entry); `post.id` starts with `zh/` or `en/`, so it can output different content per language or skip some posts. It sits inside the post page's `data-pagefind-body`, so its text is indexed by site search; mark what shouldn't be with `data-pagefind-ignore`.
+
+All three ship empty and the template never puts content in them, so a site that fills them in doesn't get conflicts there when merging template updates.
 
 ## 📸 Photo Gallery
 
@@ -345,17 +357,56 @@ pnpm build                   # verify
 
 **Fork-specific files** (where upgrade conflicts will concentrate):
 
-- `astro.config.ts` — i18n config (zh/en, `prefixDefaultLocale:false`).
+- `astro.config.ts` — i18n config (zh/en, `prefixDefaultLocale:false`) and the Markdown plugin chain (the fork's own rehype plugins).
 - `astro-paper.config.ts` — site info & feature flags.
 - `src/content.config.ts` / `src/content/posts/{zh,en}/` — per-locale content.
 - `src/i18n/lang/zh.ts`, `src/i18n/helpers.ts` — Chinese strings & bilingual helpers.
 - `src/utils/getPostPaths.ts` — strips the locale dir from slugs; infers locale from dir.
-- `src/pages/[lang]/**` — English route tree (upstream is single-language).
+- `src/pages/[lang]/**` — English route tree (upstream is single-language), a mirror of the root pages; see below.
+- `src/pages/posts/[...slug]/index.astro` — the post page (TOC, image viewer, footer layout), the file that differs most from upstream.
 - The `getCollection("posts", …)` calls in `src/pages/**` — add per-locale (`zh/`) filtering.
 - `src/components/LanguageSwitcher.astro` + the redirect script in `src/layouts/Layout.astro`, both fed by `src/utils/resolveAlternate.ts` (which pages exist in each language: a new page needs a route file in both `src/pages/` and `src/pages/[lang]/` to get a counterpart link and `hreflang`).
 - `src/styles/typography.css` — every article override carries `:not(:where(.not-prose, .not-prose *))`; keep that guard on rules added or changed when merging upstream (see [Per-post components](#per-post-components)).
 - `src/styles/theme.css` `--font-app` (CJK stack) + the font import in `src/layouts/Layout.astro`.
 - `public/_redirects`, `package.json` (deploy-related deps & scripts).
+- `README.md`, `README-en.md` — this repo's own docs, unrelated to upstream's README; on conflict keep this repo's version.
+
+Also watch for these when merging:
+
+- **Files the fork implements itself at a path upstream also has**: `src/pages/posts/[...slug]/_components/PostToc.astro` and `BackToTopButton.astro`. On conflict keep the fork's whole file with `git checkout --ours -- <file>`; don't resolve hunk by hunk, because git silently merges upstream's non-conflicting hunks into the fork's markup.
+- **Upstream files the fork deliberately doesn't carry**: if a merge brings them back or reports a modify/delete conflict, `git rm` them again. These are upstream's TOC components `src/pages/posts/[...slug]/_components/TocList.astro` and `src/assets/icons/IconListTree.svg`; `src/utils/rehypeTableWrapper.js` (the fork wraps tables with `src/utils/rehype/rehypeTableWrap.ts`, and using both wraps every table twice); `.github/dependabot.yml`; `CHANGELOG.md`; upstream's demo posts (posts under `src/content/posts/` outside `zh/` and `en/`) and `src/content/pages/about.md`.
+- **`src/pages/[lang]/**` mirrors the root pages**, and git never carries an upstream change into the mirror. After a merge, list the root pages it changed with `git diff --name-only HEAD^1 HEAD -- src/pages`, compare each with its `[lang]` copy, and port the change by hand.
+- **`_redirects` lives in `public/`** and ships with the other static files; the build script is upstream's, with no extra copy step.
+- **`src/custom/*`** is where a downstream site puts its own head, body-end and post-end additions (see [Custom slots](#custom-slots)); the template doesn't change them.
+
+## 📜 v6.1 rewrite notes
+
+- **Astro 5 → 6 / Tailwind 4.1 → 4.3**: framework upgrade, adopting upstream v6.1's config architecture (`astro-paper.config.ts` + the `src/config.ts` resolver).
+- **Content migration**: `src/data/blog/` → `src/content/posts/`, collection `blog` → `posts`.
+- **i18n strings**: the flat `ui.ts` → upstream's typed `UIStrings` (with a new Chinese `lang/zh.ts`).
+- **New features**: callouts (rehype-callouts), an image lightbox, MDX.
+- **Deployment change**: because Astro 6's Cloudflare adapter only supports Workers and its prerendering doesn't work yet, `main` became **pure static + Cloudflare Pages**; the Keystatic/Workers version is kept on the `keystatic-workers` branch.
+
+## 📜 v7.2 sync notes
+
+- **Astro 6 → 7**: aligned with upstream astro-paper v7.2.0; Node.js v22.23.4 or later is required.
+- **Whitespace in templates**: Astro 7's `compressHTML` defaults to `"jsx"`, so when you edit an `.astro` template, whitespace that contains a line break between elements (or between text and an element) is dropped, whitespace within a line is kept, and an explicit `{" "}` keeps a space across a line break:
+
+  ```astro
+  <span>{count}</span>
+  posts
+  <!-- renders "3posts" -->
+
+  <span>{count}</span>{" "}
+  posts
+  <!-- renders "3 posts" -->
+  ```
+
+- **Scheduled posts publish by day**: a production build publishes a post once its `pubDatetime` falls on or before the build day, both read in the post's `timezone` (or `site.timezone` when unset); the time of day no longer matters. On a static site the post appears with the first build on or after that day. `posts.scheduledPostMargin` is deprecated and has no effect.
+- **Previous / next**: at the bottom of a post, "Previous Post" now links the older post and "Next Post" the newer one (upstream fixed the reversed direction).
+- **Custom slots**: new `src/custom/Head.astro`, `BodyEnd.astro` and `PostEnd.astro`; see [Custom slots](#custom-slots).
+- **Table of contents**: `features.toc` also accepts `true` / `false`, and `hideToc: true` in frontmatter equals `toc: false`; a "Table of contents" heading in the body is now handled by `rehypeInlineToc` and is deprecated (see [Table of contents](#table-of-contents)).
+- **Deployment**: `_redirects` moved to `public/` and the build script is upstream's; the never-updated `package-lock.json` is gone, as pnpm is the package manager.
 
 ## 📜 License
 

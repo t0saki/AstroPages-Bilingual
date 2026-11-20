@@ -6,15 +6,15 @@
 
 [我的博客](https://t0saki.com)同样使用了这个模版。
 
-一个基于 [Astro v6](https://astro.build)（对齐上游 [astro-paper](https://github.com/satnaing/astro-paper) **v6.1**）和 [Cloudflare Pages](https://pages.cloudflare.com) 构建的现代、高性能双语博客模版。
+一个基于 [Astro v7](https://astro.build)（对齐上游 [astro-paper](https://github.com/satnaing/astro-paper) **v7.2**）和 [Cloudflare Pages](https://pages.cloudflare.com) 构建的现代、高性能双语博客模版。
 
 面向访客使用 **SSG（静态站点生成）** 以获得极致性能。可选的、基于 Git 的 [Keystatic CMS](https://keystatic.com)（无需数据库）保留在 `keystatic-workers` 分支上，详见下文 [分支说明](#-分支说明)。
 
-本项目基于 [astro-paper](https://github.com/satnaing/astro-paper) 主题，并针对原生 i18n、Astro 6 与工程健壮性进行了重构。
+本项目基于 [astro-paper](https://github.com/satnaing/astro-paper) 主题，并针对原生 i18n、Astro 7 与工程健壮性进行了重构。
 
 ## ✨ 特性
 
-- **Astro v6 原生 i18n**：全路由结构，中文在根路径 `/`，英文在 `/en/`，含语言切换器与首访语言重定向。
+- **Astro v7 原生 i18n**：全路由结构，中文在根路径 `/`，英文在 `/en/`，含语言切换器与首访语言重定向。
 - **纯静态输出 (SSG)**：默认分支为纯静态，部署到 Cloudflare Pages，无需服务端运行时。
 - **可选 Keystatic CMS**：基于 Git 的 Headless CMS（`keystatic-workers` 分支）。
 - **类型安全的内容管理**：对所有博客文章进行严格的 `astro:content` schema 校验。
@@ -31,7 +31,7 @@
 
 ### 1. 环境要求
 
-- Node.js **v22.12+**（Astro 6 要求）
+- Node.js **v22.23.4+**（Astro 7 要求）
 - GitHub 账号（使用 Keystatic CMS 时需要）
 - Cloudflare 账号（可选，用于部署）
 
@@ -144,7 +144,9 @@ features: {
 },
 ```
 
-单篇文章可用 frontmatter 覆盖：`toc: false` 不显示，`toc: true` 即使标题不足也显示。正文里 remark-toc 使用的「Table of contents」/「目录」标题不会进入目录。
+单篇文章可用 frontmatter 覆盖：`toc: false` 不显示，`toc: true` 即使标题不足也显示；上游的写法 `hideToc: true` 等同于 `toc: false`。`features.toc` 也可以直接写 `true`（按默认阈值开启）或 `false`（全站关闭）。
+
+正文里的「Table of contents」标题（也认 `Contents`、`TOC`，不分大小写）是上游的旧写法：`src/utils/rehypeInlineToc.js` 把第一个这样的标题换成一个折叠列表，折叠按钮上是这个标题的文字，展开后列出它后面的各级标题；它不再是标题，所以不进入页面目录。上游已把这个写法标为弃用、在 v8 移除，构建时发现这种标题会给出警告，新文章不必再写。写成「目录」的标题不会被替换，照常显示在正文里，但不列入页面目录。
 
 ### 阅读时长
 
@@ -218,6 +220,16 @@ import Distance from "@/components/posts/my-trip/Distance.astro";
 - 缩进四格的代码块不再是代码块，会变成普通段落，要用 ``` 围栏。
 - `keystatic-workers` 分支的 Keystatic 只认 `.md`，改成 `.mdx` 的文章不会出现在后台里。
 - `src/content/` 下的文章（`.md` 和 `.mdx`）都不经过 prettier（见 `.prettierignore`），但 `src/components/posts/` 下的组件和其他代码一样，要通过 `format:check` 和 `lint`。
+
+### 自定义插槽
+
+`src/custom/` 下的三个组件留给使用这个模版的站点放自己的内容：
+
+- `src/custom/Head.astro`：渲染在每个页面 `<head>` 的末尾，主题自己的标签之后。放统计脚本、站点验证标签、额外的 `<meta>` / `<link>`。它收到当前页面的 `title` 和 `description`。
+- `src/custom/BodyEnd.astro`：渲染在每个页面的 `</body>` 之前。
+- `src/custom/PostEnd.astro`：渲染在中英文的每个文章页上，分享链接之后、相关文章和上一篇 / 下一篇之前。它收到 `post`（这篇文章的 collection entry），`post.id` 以 `zh/` 或 `en/` 开头，可以据此按语言输出不同内容，或跳过某些文章。它在文章页的 `data-pagefind-body` 范围内，里面的文字会被站内搜索索引，不想被索引的部分加 `data-pagefind-ignore`。
+
+三个文件出厂是空的，模版自己从不往里面放内容，所以站点填了它们，之后合并模版更新也不会在这里冲突。
 
 ## 📸 照片相册
 
@@ -353,17 +365,27 @@ pnpm build                   # 验证构建
 
 **本仓库相对上游的定制文件**（升级时主要在这些地方解决冲突）：
 
-- `astro.config.ts` — i18n 配置（zh/en、`prefixDefaultLocale:false`）。
+- `astro.config.ts` — i18n 配置（zh/en、`prefixDefaultLocale:false`）和 Markdown 插件链（本仓库自己的 rehype 插件）。
 - `astro-paper.config.ts` — 站点信息与功能开关。
 - `src/content.config.ts` / `src/content/posts/{zh,en}/` — 按语言分目录的内容。
 - `src/i18n/lang/zh.ts`、`src/i18n/helpers.ts` — 中文文案与双语路由 helper。
 - `src/utils/getPostPaths.ts` — 从 slug 中剥离语言目录、按目录推断语言。
-- `src/pages/[lang]/**` — 英文路由树（上游为单语言，无此目录）。
+- `src/pages/[lang]/**` — 英文路由树（上游为单语言，无此目录），是根目录页面的镜像，见下文。
+- `src/pages/posts/[...slug]/index.astro` — 文章页（目录、图片查看器、页尾布局），和上游差别最大。
 - `src/pages/**` 中各页的 `getCollection("posts", …)` — 增加了按语言（`zh/`）过滤。
 - `src/components/LanguageSwitcher.astro` + `src/layouts/Layout.astro` 的语言重定向脚本，二者都依赖 `src/utils/resolveAlternate.ts`（判断各语言有哪些页面：新页面要在 `src/pages/` 和 `src/pages/[lang]/` 下都有路由文件，才会生成对应语言的链接和 `hreflang`）。
 - `src/styles/typography.css` — 正文排版覆盖规则都带 `:not(:where(.not-prose, .not-prose *))`，合并上游新增或改动的规则时要保留这个守卫（见 [文章自带组件](#文章自带组件)）。
 - `src/styles/theme.css` 的 `--font-app`（中文字体栈）+ `src/layouts/Layout.astro` 的字体导入。
 - `public/_redirects`、`package.json`（部署相关依赖与脚本）。
+- `README.md`、`README-en.md` — 本仓库自己的说明，和上游的 README 无关，冲突时保留本仓库版本。
+
+合并时还要注意：
+
+- **本仓库自己实现、上游同路径也有的文件**：`src/pages/posts/[...slug]/_components/PostToc.astro` 和 `BackToTopButton.astro`。冲突时用 `git checkout --ours -- <文件>` 整份保留本仓库的版本，不要逐块解决：上游那些没有冲突的块会被 git 悄悄并进本仓库的标记里。
+- **本仓库刻意不带的上游文件**：合并把它们带回来或报 modify/delete 冲突时，`git rm` 删掉即可。包括上游的目录组件 `src/pages/posts/[...slug]/_components/TocList.astro` 和 `src/assets/icons/IconListTree.svg`；`src/utils/rehypeTableWrapper.js`（本仓库用 `src/utils/rehype/rehypeTableWrap.ts` 包表格，两个都用会包两层）；`.github/dependabot.yml`；`CHANGELOG.md`；上游的演示文章（`src/content/posts/` 下不在 `zh/`、`en/` 里的文章）和 `src/content/pages/about.md`。
+- **`src/pages/[lang]/**` 是根目录页面的镜像**，git 不会把上游的改动带进镜像。合并后用 `git diff --name-only HEAD^1 HEAD -- src/pages` 列出这次合并改过的根目录页面，逐个和 `[lang]` 下的对应文件比较，把改动手工补过去。
+- **`_redirects` 在 `public/` 下**，随其他静态文件输出；构建脚本和上游一致，没有额外的拷贝步骤。
+- **`src/custom/*`** 是下游站点放自己 head、body 末尾、文章末尾内容的地方（见 [自定义插槽](#自定义插槽)），模版不会改动它们。
 
 ## 📜 本次 v6.1 重构要点
 
@@ -372,5 +394,26 @@ pnpm build                   # 验证构建
 - **i18n 文案**：扁平的 `ui.ts` → 上游的 typed `UIStrings`（新增中文 `lang/zh.ts`）。
 - **新特性**：callouts（rehype-callouts）、图片 lightbox、MDX。
 - **部署变更**：因 Astro 6 的 Cloudflare 适配器只支持 Workers 且其预渲染暂不可用，`main` 改为**纯静态 + Cloudflare Pages**；Keystatic/Workers 版保留在 `keystatic-workers` 分支。
+
+## 📜 v7.2 同步要点
+
+- **Astro 6 → 7**：对齐上游 astro-paper v7.2.0，Node.js 需要 v22.23.4 以上。
+- **模板里的空白**：Astro 7 的 `compressHTML` 默认是 `"jsx"`，改 `.astro` 模板时，元素之间（或文字和元素之间）含换行的空白会被删掉，同一行里的空白照常保留，需要空格又要换行时显式写 `{" "}`：
+
+  ```astro
+  <span>{count}</span>
+  posts
+  <!-- 输出 "3posts" -->
+
+  <span>{count}</span>{" "}
+  posts
+  <!-- 输出 "3 posts" -->
+  ```
+
+- **定时发布按天计算**：生产构建发布 `pubDatetime` 所在日期不晚于构建当天的文章，日期按文章的 `timezone`（没写则按 `site.timezone`）计算，不再看具体时刻；纯静态站点上，文章在那天及之后的第一次构建时出现。`posts.scheduledPostMargin` 已弃用，写了也不起作用。
+- **上一篇 / 下一篇**：文章页底部的「上一篇」现在指向更早的文章，「下一篇」指向更新的文章（上游修正了原来相反的方向）。
+- **自定义插槽**：新增 `src/custom/Head.astro`、`BodyEnd.astro`、`PostEnd.astro`，见 [自定义插槽](#自定义插槽)。
+- **文章目录**：`features.toc` 也接受 `true` / `false`，frontmatter 的 `hideToc: true` 等同于 `toc: false`；正文里的「Table of contents」标题改由 `rehypeInlineToc` 处理，已弃用（见 [文章目录](#文章目录)）。
+- **部署**：`_redirects` 移到 `public/`，构建脚本和上游相同；删掉了一直没更新过的 `package-lock.json`，包管理器是 pnpm。
 
 ## 📜 许可证

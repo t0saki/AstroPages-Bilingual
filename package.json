@@ -1,7 +1,7 @@
 {
   "name": "bilingual-blog",
   "type": "module",
-  "version": "6.1.0",
+  "version": "7.2.0",
   "engines": {
     "node": ">=22.23.4"
   },
