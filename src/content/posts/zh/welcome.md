@@ -16,7 +16,7 @@ tags:
 ## 主要特性
 
 - 🌍 **双语支持**：完整的中英文内容支持
-- 🚀 **高性能**：基于 Astro 5 的静态站点生成
+- 🚀 **高性能**：基于 Astro 的静态站点生成
 - ✍️ **Keystatic CMS**：直观的内容管理体验
 - ☁️ **Cloudflare Pages**：边缘部署，全球加速
 
@@ -24,7 +24,7 @@ tags:
 
 本博客使用了以下技术：
 
-- Astro v5 with Native i18n
+- Astro with Native i18n
 - Keystatic Headless CMS
 - TailwindCSS v4
 - TypeScript

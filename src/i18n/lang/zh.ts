@@ -17,6 +17,7 @@ export default {
     sharePostOn: "分享到 {{platform}}",
     sharePostViaEmail: "通过邮件分享",
     backToTop: "回到顶部",
+    // Upstream's TOC label. Not read here: this fork's TOC uses `toc` below.
     tableOfContents: "目录",
     goBack: "返回",
     editPage: "编辑此页",
@@ -97,6 +98,7 @@ export default {
   },
   a11y: {
     skipToContent: "跳转到正文",
+    // Upstream's TOC skip link, which this fork's TOC does not have.
     skipTableOfContents: "跳过目录",
     openMenu: "打开菜单",
     closeMenu: "关闭菜单",

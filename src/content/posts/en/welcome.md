@@ -16,7 +16,7 @@ This is a bilingual blog system built on the AstroPaper theme.
 ## Key Features
 
 - 🌍 **Bilingual Support**: Full Chinese and English content support
-- 🚀 **High Performance**: Built on Astro 5 static site generation
+- 🚀 **High Performance**: Built on Astro static site generation
 - ✍️ **Keystatic CMS**: Intuitive content management experience
 - ☁️ **Cloudflare Pages**: Edge deployment, global acceleration
 
@@ -24,7 +24,7 @@ This is a bilingual blog system built on the AstroPaper theme.
 
 This blog uses the following technologies:
 
-- Astro v5 with Native i18n
+- Astro with Native i18n
 - Keystatic Headless CMS
 - TailwindCSS v4
 - TypeScript
