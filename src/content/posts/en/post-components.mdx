@@ -1,0 +1,78 @@
+---
+title: Posts that bring their own components
+pubDatetime: 2026-08-01T09:00:00Z
+description: Writing a component for a single post — where it lives, how to import it, and how its styles and scripts stay out of the article's way.
+tags:
+  - writing
+  - components
+---
+
+import ThemeSwatches from "@/components/posts/post-components/ThemeSwatches.astro";
+
+Some things can't be written in Markdown: a set of swatches you can click, a redrawn chat transcript, an interactive chart. For those, a post can have a component of its own, used by that post alone.
+
+Here is one: the colour variables of this site's theme. Press a swatch to copy its variable name. Switch to the dark theme and the swatches change with it.
+
+<ThemeSwatches caption="The colour variables in this site’s theme.css" />
+
+## Where it lives and how to import it
+
+A post's components go in `src/components/posts/<slug>/`, where `<slug>` is the post's file name — `post-components` for this one. The Chinese and English versions of the post share that folder.
+
+The post itself is written as `.mdx`. Import the component below the frontmatter through the `@/` alias, then use it like an HTML tag:
+
+```mdx
+import ThemeSwatches from "@/components/posts/post-components/ThemeSwatches.astro";
+
+<ThemeSwatches caption="The colour variables in this site’s theme.css" />
+```
+
+## Props and data
+
+Anything the post wants to say goes in as props. The `caption` above is the post's own text, so each post passes it in its own language. The button wording is interface text: the component takes it from the site's translations with `useTranslations(Astro.currentLocale)`, so neither post has to pass it.
+
+When there is more data than a prop or two, put a JSON file next to the component and import it there:
+
+```astro
+---
+import messages from "./messages.json";
+---
+```
+
+Both language versions then read the same data, and a fix lands in one place.
+
+## The not-prose boundary
+
+The article's typography (heading spacing, link underlines, image borders, table rules, the code background and so on) and its scripts (the `#` links beside headings, copy buttons on code blocks, the image viewer) stop at any element with the `not-prose` class. Put it on your component's root element and the HTML inside answers to your styles only.
+
+An image in a component can still join the article's image viewer: give it `data-zoomable`.
+
+```html
+<img src="/photo.jpg" alt="What the photo shows" data-zoomable />
+```
+
+## Colours and dark mode
+
+Styles go in the component's `<style>` block, which Astro scopes to the component, so nothing leaks into the rest of the page. Use the theme variables for colour — `var(--foreground)`, `var(--accent)`, `var(--border)` and the rest. They change value in the dark theme, so you don't need dark-mode rules of your own. The swatches above have none.
+
+## Scripts
+
+A component's `<script>` is bundled as a module, and the browser runs it once, when it first loads it. With the ClientRouter, moving between pages doesn't reload the document, so the module doesn't run again: put your setup in `onPageReady`, which runs on the first load and again after every page swap. Listeners on the component's own elements go away with the old page. Listeners on `document` or `window` and timers still pending outlive it, so clear those before the next swap (`astro:before-swap`). This post's component shows one way to do it.
+
+```ts
+import { onPageReady } from "@/scripts/onPageReady";
+
+onPageReady(() => {
+  // find this page's components and wire them up
+});
+```
+
+## One-off bits
+
+For a small piece of HTML with no script, used in this post only, you don't need a component, nor `.mdx`. Write the HTML straight into an ordinary `.md` post; `not-prose` works there too:
+
+```html
+<div class="not-prose">
+  <p>This text is not styled by the article.</p>
+</div>
+```

@@ -1,0 +1,78 @@
+---
+title: 文章自带组件
+pubDatetime: 2026-08-01T09:00:00Z
+description: 给单篇文章写专属的组件：放在哪、怎么引入，样式和脚本怎么写才不和正文打架。
+tags:
+  - 写作
+  - 组件
+---
+
+import ThemeSwatches from "@/components/posts/post-components/ThemeSwatches.astro";
+
+有些内容 Markdown 写不出来，比如一组能点的色块、一段重绘的聊天记录、一张可以交互的图表。这时可以给这篇文章单独写一个组件，只在这篇文章里用。
+
+下面就是一个：本站主题里的颜色变量，点一下就复制变量名。切到深色模式，色块会跟着换。
+
+<ThemeSwatches caption="本站 theme.css 里的颜色变量" />
+
+## 放在哪，怎么引入
+
+组件放在 `src/components/posts/<slug>/` 下，`<slug>` 就是文章的文件名，这篇是 `post-components`。中英两个版本的文章共用这一个目录。
+
+文章要写成 `.mdx`，在 frontmatter 下面用 `@/` 别名引入组件，然后像 HTML 标签一样使用：
+
+```mdx
+import ThemeSwatches from "@/components/posts/post-components/ThemeSwatches.astro";
+
+<ThemeSwatches caption="本站 theme.css 里的颜色变量" />
+```
+
+## 传参和数据
+
+参数就是组件的 props。上面的 `caption` 是文章自己的话，所以由文章用自己的语言传进去。按钮的提示文字属于界面文案，组件里用 `useTranslations(Astro.currentLocale)` 取站点现成的翻译，中英文章都不用再传。
+
+数据多的话，放一个 JSON 文件在组件旁边，在组件里引入：
+
+```astro
+---
+import messages from "./messages.json";
+---
+```
+
+两种语言的文章用的是同一份数据，改一处就够了。
+
+## not-prose 边界
+
+正文的排版样式（标题间距、链接下划线、图片边框、表格线、代码底色等）和正文脚本（标题旁的 `#` 链接、代码块的复制按钮、图片灯箱）都不会进入带 `not-prose` class 的元素。把它加在组件的根元素上，组件里的 HTML 就只听你自己的样式。
+
+组件里的图片如果想用文章的灯箱，加上 `data-zoomable`，它就和正文图片一起进灯箱：
+
+```html
+<img src="/photo.jpg" alt="说明文字" data-zoomable />
+```
+
+## 颜色和深色模式
+
+样式写在组件的 `<style>` 里，Astro 会把它限定在这个组件内，不会漏到页面别处。颜色只用主题变量，比如 `var(--foreground)`、`var(--accent)`、`var(--border)`。深色模式下这些变量会自动换值，不用另写一套深色规则。上面的色块就是这样，它的样式里没有一条深色专用的规则。
+
+## 脚本
+
+组件里的 `<script>` 会被打包成模块，只在浏览器第一次加载它时执行一次。站点用了 ClientRouter，站内换页不会重新加载页面，模块也不会再执行，所以初始化要放进 `onPageReady`：它在首次加载和每次换页之后各跑一次。挂在组件自己元素上的监听器会随旧页面一起丢掉，不用管；挂在 `document`、`window` 上的监听器和还没触发的定时器会比页面活得久，要在换页之前（`astro:before-swap`）清掉。具体写法可以看这个组件的源码。
+
+```ts
+import { onPageReady } from "@/scripts/onPageReady";
+
+onPageReady(() => {
+  // 找到本页的组件，绑定事件
+});
+```
+
+## 只用一次的小东西
+
+如果只是一小段 HTML，没有脚本，也不打算在别的文章里复用，那就不必写组件，文章也不必改成 `.mdx`。普通 `.md` 文章里直接写 HTML 就行，同样可以加 `not-prose`：
+
+```html
+<div class="not-prose">
+  <p>这里的内容不受正文排版影响。</p>
+</div>
+```
