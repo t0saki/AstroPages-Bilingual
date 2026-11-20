@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: "☁️ Checkout repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # ffmpeg (SVT-AV1) downscales HDR (PQ/HLG) AVIF while keeping it 10-bit +
       # HDR-tagged, and is the decode fallback for AVIFs sharp can't read;
@@ -59,12 +59,12 @@ jobs:
           ffprobe -protocols | grep -qw https || echo "::warning::ffprobe has no https protocol — video posters will download each clip in full"
 
       - name: "📦 Install pnpm"
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.11.1
 
       - name: "⬢ Use Node.js (from .nvmrc)"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
