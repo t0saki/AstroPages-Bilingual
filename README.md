@@ -146,7 +146,7 @@ features: {
 
 单篇文章可用 frontmatter 覆盖：`toc: false` 不显示，`toc: true` 即使标题不足也显示；上游的写法 `hideToc: true` 等同于 `toc: false`。`features.toc` 也可以直接写 `true`（按默认阈值开启）或 `false`（全站关闭）。
 
-正文里的「Table of contents」标题（也认 `Contents`、`TOC`，不分大小写）是上游的旧写法：`src/utils/rehypeInlineToc.js` 把第一个这样的标题换成一个折叠列表，折叠按钮上是这个标题的文字，展开后列出它后面的各级标题；它不再是标题，所以不进入页面目录。上游已把这个写法标为弃用、在 v8 移除，构建时发现这种标题会给出警告，新文章不必再写。写成「目录」的标题不会被替换，照常显示在正文里，但不列入页面目录。
+正文里的「Table of contents」标题（也认 `Contents`、`TOC`，不分大小写）是上游的旧写法：`src/utils/rehypeInlineToc.js` 把第一个这样的标题换成一个折叠列表，折叠按钮上是这个标题的文字，展开后列出它后面的各级标题；它不再是标题，所以不进入页面目录。上游已把这个写法标为弃用、在 v8 移除，构建时发现这种标题会给出警告，新文章不必再写。写成「目录」的标题不会被替换，照常显示在正文里，但不列入页面目录。这个折叠列表有两处和页面目录不一样：宽屏上页面目录出现在文章旁边时它会隐藏（两份内容相同）；含公式或脚注的标题在它里面显示的是未经清理的文字，末尾还会多一项「Footnotes」。
 
 ### 阅读时长
 
@@ -358,7 +358,7 @@ git remote add upstream https://github.com/satnaing/astro-paper.git
 # 每次升级：
 git fetch upstream
 git merge upstream/main      # 或 git diff main upstream/main 先查看改动
-# 仅需在下列「本仓库定制文件」中解决冲突
+# 冲突主要出现在下列「本仓库定制文件」中
 pnpm install
 pnpm build                   # 验证构建
 ```
@@ -376,12 +376,15 @@ pnpm build                   # 验证构建
 - `src/components/LanguageSwitcher.astro` + `src/layouts/Layout.astro` 的语言重定向脚本，二者都依赖 `src/utils/resolveAlternate.ts`（判断各语言有哪些页面：新页面要在 `src/pages/` 和 `src/pages/[lang]/` 下都有路由文件，才会生成对应语言的链接和 `hreflang`）。
 - `src/styles/typography.css` — 正文排版覆盖规则都带 `:not(:where(.not-prose, .not-prose *))`，合并上游新增或改动的规则时要保留这个守卫（见 [文章自带组件](#文章自带组件)）。
 - `src/styles/theme.css` 的 `--font-app`（中文字体栈）+ `src/layouts/Layout.astro` 的字体导入。
-- `public/_redirects`、`package.json`（部署相关依赖与脚本）。
+- `src/config.ts`、`src/types/config.ts` — 相册、语义搜索、目录、阅读时间、相关文章等配置项的解析和类型。
+- `src/components/Breadcrumb.astro`、`Datetime.astro`、`ResponsiveTable.astro`，`src/pages/posts/[...slug]/_components/ShareLinks.astro`，`src/pages/search.astro`，`src/pages/posts/[...slug]/index.png.ts` — 双语文案、日期本地化和本仓库功能的改动。
+- `.github/workflows/ci.yml` — pnpm 版本和 `.nvmrc`；上游升级 action 版本时，本仓库独有的 `gallery.yml` 要一起升。
+- `public/_redirects`、`package.json`、`pnpm-lock.yaml`（部署相关依赖与脚本；锁文件不要手工合并，取上游版本后重新 `pnpm install`）。
 - `README.md`、`README-en.md` — 本仓库自己的说明，和上游的 README 无关，冲突时保留本仓库版本。
 
 合并时还要注意：
 
-- **本仓库自己实现、上游同路径也有的文件**：`src/pages/posts/[...slug]/_components/PostToc.astro` 和 `BackToTopButton.astro`。冲突时用 `git checkout --ours -- <文件>` 整份保留本仓库的版本，不要逐块解决：上游那些没有冲突的块会被 git 悄悄并进本仓库的标记里。
+- **本仓库自己实现、上游同路径也有的文件**：`src/pages/posts/[...slug]/_components/PostToc.astro` 和 `BackToTopButton.astro`。冲突时用 `git checkout --ours -- <文件>` 整份保留本仓库的版本，不要逐块解决：上游那些没有冲突的块会被 git 悄悄并进本仓库这份文件里。保留之后，用 `git diff <上次合并的上游版本> upstream/main -- <文件>` 看上游这次对它改了什么，把适用的修复手工补进来（v7.2 同步时 BackToTopButton 里的 `{" "}` 就是这样补的）。本仓库独有、和上游组件显示同一份数据的组件（如 `src/components/ArchiveItem.astro` 对应上游的 `Card.astro`）也要这样对一遍。
 - **本仓库刻意不带的上游文件**：合并把它们带回来或报 modify/delete 冲突时，`git rm` 删掉即可。包括上游的目录组件 `src/pages/posts/[...slug]/_components/TocList.astro` 和 `src/assets/icons/IconListTree.svg`；`src/utils/rehypeTableWrapper.js`（本仓库用 `src/utils/rehype/rehypeTableWrap.ts` 包表格，两个都用会包两层）；`.github/dependabot.yml`；`CHANGELOG.md`；上游的演示文章（`src/content/posts/` 下不在 `zh/`、`en/` 里的文章）和 `src/content/pages/about.md`。
 - **`src/pages/[lang]/**` 是根目录页面的镜像**，git 不会把上游的改动带进镜像。合并后用 `git diff --name-only HEAD^1 HEAD -- src/pages` 列出这次合并改过的根目录页面，逐个和 `[lang]` 下的对应文件比较，把改动手工补过去。
 - **`_redirects` 在 `public/` 下**，随其他静态文件输出；构建脚本和上游一致，没有额外的拷贝步骤。

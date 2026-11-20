@@ -142,7 +142,7 @@ features: {
 
 Per post, frontmatter overrides it: `toc: false` hides it, `toc: true` shows it even below the threshold; upstream's spelling `hideToc: true` is the same as `toc: false`. `features.toc` also takes a plain `true` (on, default thresholds) or `false` (off site-wide).
 
-A "Table of contents" heading in the body (also `Contents` or `TOC`, any case) is upstream's older way of adding a TOC: `src/utils/rehypeInlineToc.js` replaces the first such heading with a collapsed list whose toggle carries the heading's text and which lists the headings after it; it is no longer a heading, so the page TOC doesn't list it. Upstream marks this deprecated and removes it in v8, the build warns about posts that still have one, and new posts don't need it. A "目录" heading is left alone and shown as written, but the page TOC doesn't list it either.
+A "Table of contents" heading in the body (also `Contents` or `TOC`, any case) is upstream's older way of adding a TOC: `src/utils/rehypeInlineToc.js` replaces the first such heading with a collapsed list whose toggle carries the heading's text and which lists the headings after it; it is no longer a heading, so the page TOC doesn't list it. Upstream marks this deprecated and removes it in v8, the build warns about posts that still have one, and new posts don't need it. A "目录" heading is left alone and shown as written, but the page TOC doesn't list it either. The collapsed list differs from the page TOC in two ways: on wide screens it is hidden while the page TOC shows beside the article (they hold the same entries), and headings with math or footnotes appear in it with their raw text, followed by an extra "Footnotes" entry.
 
 ### Reading time
 
@@ -350,7 +350,7 @@ git remote add upstream https://github.com/satnaing/astro-paper.git
 # each upgrade:
 git fetch upstream
 git merge upstream/main      # or `git diff main upstream/main` to review first
-# resolve conflicts only in the fork-specific files listed below
+# conflicts concentrate in the fork-specific files listed below
 pnpm install
 pnpm build                   # verify
 ```
@@ -368,12 +368,15 @@ pnpm build                   # verify
 - `src/components/LanguageSwitcher.astro` + the redirect script in `src/layouts/Layout.astro`, both fed by `src/utils/resolveAlternate.ts` (which pages exist in each language: a new page needs a route file in both `src/pages/` and `src/pages/[lang]/` to get a counterpart link and `hreflang`).
 - `src/styles/typography.css` — every article override carries `:not(:where(.not-prose, .not-prose *))`; keep that guard on rules added or changed when merging upstream (see [Per-post components](#per-post-components)).
 - `src/styles/theme.css` `--font-app` (CJK stack) + the font import in `src/layouts/Layout.astro`.
-- `public/_redirects`, `package.json` (deploy-related deps & scripts).
+- `src/config.ts`, `src/types/config.ts` — resolving and typing the gallery, semantic search, TOC, reading time and related posts options.
+- `src/components/Breadcrumb.astro`, `Datetime.astro`, `ResponsiveTable.astro`, `src/pages/posts/[...slug]/_components/ShareLinks.astro`, `src/pages/search.astro`, `src/pages/posts/[...slug]/index.png.ts` — bilingual labels, localised dates and the fork's own features.
+- `.github/workflows/ci.yml` — the pnpm version and `.nvmrc`; when upstream bumps the action versions, bump the fork-only `gallery.yml` with it.
+- `public/_redirects`, `package.json`, `pnpm-lock.yaml` (deploy-related deps & scripts; don't merge the lock file by hand, take upstream's and run `pnpm install` again).
 - `README.md`, `README-en.md` — this repo's own docs, unrelated to upstream's README; on conflict keep this repo's version.
 
 Also watch for these when merging:
 
-- **Files the fork implements itself at a path upstream also has**: `src/pages/posts/[...slug]/_components/PostToc.astro` and `BackToTopButton.astro`. On conflict keep the fork's whole file with `git checkout --ours -- <file>`; don't resolve hunk by hunk, because git silently merges upstream's non-conflicting hunks into the fork's markup.
+- **Files the fork implements itself at a path upstream also has**: `src/pages/posts/[...slug]/_components/PostToc.astro` and `BackToTopButton.astro`. On conflict keep the fork's whole file with `git checkout --ours -- <file>`; don't resolve hunk by hunk, because git silently merges upstream's non-conflicting hunks into the fork's file. Then run `git diff <the upstream release merged last time> upstream/main -- <file>` to see what upstream changed in it this time, and port the fixes that apply by hand (the `{" "}` in BackToTopButton came in that way in the v7.2 sync). Do the same for fork-only components that render the same data as an upstream one (`src/components/ArchiveItem.astro` next to upstream's `Card.astro`, for example).
 - **Upstream files the fork deliberately doesn't carry**: if a merge brings them back or reports a modify/delete conflict, `git rm` them again. These are upstream's TOC components `src/pages/posts/[...slug]/_components/TocList.astro` and `src/assets/icons/IconListTree.svg`; `src/utils/rehypeTableWrapper.js` (the fork wraps tables with `src/utils/rehype/rehypeTableWrap.ts`, and using both wraps every table twice); `.github/dependabot.yml`; `CHANGELOG.md`; upstream's demo posts (posts under `src/content/posts/` outside `zh/` and `en/`) and `src/content/pages/about.md`.
 - **`src/pages/[lang]/**` mirrors the root pages**, and git never carries an upstream change into the mirror. After a merge, list the root pages it changed with `git diff --name-only HEAD^1 HEAD -- src/pages`, compare each with its `[lang]` copy, and port the change by hand.
 - **`_redirects` lives in `public/`** and ships with the other static files; the build script is upstream's, with no extra copy step.
