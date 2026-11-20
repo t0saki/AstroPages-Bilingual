@@ -23,6 +23,7 @@ Based on the [astro-paper](https://github.com/satnaing/astro-paper) theme, refac
 - **Static Full-Text Search**: [Pagefind](https://pagefind.app/), indexed per language, with optional semantic results from Cloudflare AI Search (see [Semantic search](#-semantic-search-optional)).
 - **Math Formulas**: LaTeX math embedded in Markdown, rendered at build time by [KaTeX](https://katex.org/) (remark-math + rehype-katex) — no client-side JS.
 - **Photo Gallery**: a `/gallery` page collecting image-host photos from posts marked `gallery: true`, grouped by post, with EXIF (camera / lens / settings) on hover and a [PhotoSwipe](https://photoswipe.com/) lightbox. Filterable by camera, lens and focal length. Thumbnails and EXIF are pre-generated into the repo (see [Photo Gallery](#-photo-gallery)).
+- **Per-post Components**: a post can bring its own components (HTML/CSS/JS), kept in `src/components/posts/<slug>/` and imported from `.mdx`; `not-prose` keeps the article's styles and scripts out (see [Per-post components](#per-post-components)).
 - **Table of Contents**: posts with enough headings get a TOC — a sticky rail beside the article on wide screens (≥1280px) that highlights the section you're reading, and a floating button that opens it as a sheet on smaller ones (see [Table of contents](#table-of-contents)).
 - **SEO Optimized**: multi-language meta tags, sitemap, and OpenGraph pre-configured.
 
@@ -109,6 +110,7 @@ To edit content on the live site (`/keystatic`), connect Keystatic to GitHub:
 │   │   └── [lang]/          # English (/en/) route tree
 │   ├── i18n/                # UI strings (lang/zh.ts, lang/en.ts) + bilingual helpers
 │   └── components/          # Shared UI (incl. LanguageSwitcher)
+│       └── posts/<slug>/    # A post's own components (shared by zh and en)
 ├── _redirects              # Cloudflare Pages redirects (copied to dist/ at build)
 └── public/                 # Static assets
 ```
@@ -160,6 +162,59 @@ shareLinks: [
   { name: "mail", url: "mailto:?subject={title}&body={url}" },
 ],
 ```
+
+### Per-post components
+
+For what Markdown can't express — a set of swatches you can click, a redrawn chat transcript, an interactive chart — a post can bring components of its own. The `post-components` example post does this.
+
+A post's components live in `src/components/posts/<slug>/`, where `<slug>` is the post's file name; the Chinese and English versions of the post share the folder. Write the post as `.mdx` and import through the `@/` alias:
+
+```astro
+---
+// src/components/posts/my-trip/Distance.astro
+type Props = { km: number; label: string };
+const { km, label } = Astro.props;
+---
+
+<p class="not-prose distance"><strong>{km}</strong> km · {label}</p>
+
+<style>
+  .distance {
+    margin-block: 1.5rem;
+    color: var(--muted-foreground);
+  }
+  strong {
+    font-size: 2rem;
+    color: var(--accent);
+  }
+</style>
+```
+
+```mdx
+import Distance from "@/components/posts/my-trip/Distance.astro";
+
+<Distance km={1240} label="covered in nine days" />
+```
+
+- **The boundary**: the article's typography (headings, links, images, tables, code, quotes and so on) and its scripts (the `#` links beside headings, copy buttons on code blocks, the image viewer) stop at any element with the `not-prose` class, so put it on the component's root. It stops the article's rules and scripts, nothing more: inherited properties (font size, line height, text colour) still come down from outside, and the site-wide per-language typography (emphasis dots on a Chinese `<em>`, say) and the styles that code highlighting, maths and callouts bring themselves are not the article's to withhold. To let an image inside a component join the article's image viewer, give it `data-zoomable`: `<img src="…" alt="…" data-zoomable />`.
+- **Colours and dark mode**: a component's `<style>` is scoped to it. Use the theme variables from `src/styles/theme.css` for colour (`--background`, `--foreground`, `--accent`, `--accent-foreground`, `--muted`, `--muted-foreground`, `--border`); they change value in the dark theme, so no dark-mode rules are needed. Tailwind utilities (`text-accent`, `bg-muted`, …) work too.
+- **Scripts**: a component's `<script>` is bundled as a module that the browser runs once; it doesn't run again after a ClientRouter page swap. Do your setup in `onPageReady` (`@/scripts/onPageReady`), which runs on the first load and after every swap. Listeners on the component's own elements go away with the old page; listeners on `document` / `window` and timers still pending outlive it, so clear those on `astro:before-swap`. The example component, `src/components/posts/post-components/ThemeSwatches.astro`, shows the pattern.
+- **Data and wording**: keep larger data in a JSON file next to the component and `import data from "./data.json";` there, so both language versions read the same copy. Pass the post's own words as props; interface wording such as button labels can come from the site's translations with `useTranslations(Astro.currentLocale)`.
+- **Validation**: an exception thrown while a component renders fails `astro build`, and the error names the post's route (`Caught error rendering /posts/my-trip: …`), so a component can check its props and `throw` on bad ones. `astro check` doesn't check the props an `.mdx` post passes; `type Props` only types the inside of the component.
+- **Page features**: the table of contents lists Markdown headings (`##`) only — not headings inside components, JSX `<h2>` in MDX, or HTML headings in a `.md` post. Markdown written straight into the post body is still handled by the Markdown pipeline, even inside a `not-prose` wrapper: its headings are listed, its tables get the horizontal scroller. Reading time is computed from the post's source, so text a component renders isn't counted. Search indexes the rendered page, so component text is searchable; mark what shouldn't be with `data-pagefind-ignore`. The gallery only collects `![](…)` images from the post body, never images inside components.
+
+For a small piece of HTML with no script that no other post reuses, skip the component: write the HTML straight into a `.md` post, `not-prose` included.
+
+When a post moves from `.md` to `.mdx` (each point checked by compiling a sample in this repo):
+
+- `{` and `}` in prose start a JavaScript expression: `{name}` fails the build with `name is not defined`, and a lone `{` doesn't compile. Write `\{`, or put it in inline code.
+- `<` directly followed by a letter, digit, `/` or `!` starts a tag, so `a<b` and `1<2` are errors; `1 < 2` is fine, and so is `\<`.
+- HTML comments (`<!-- -->`) are errors; use `{/* … */}`.
+- Void elements must self-close: `<br />`, `<img … />`; `<br>` is an error.
+- `<https://…>` autolinks are errors; write the bare URL (it is still linked) or `[text](https://…)`.
+- Indented (four-space) code blocks become plain paragraphs; use ``` fences.
+- Keystatic on the `keystatic-workers` branch only reads `.md`, so a post moved to `.mdx` doesn't show up in the admin UI.
+- Posts under `src/content/` (`.md` and `.mdx` alike) are skipped by prettier (see `.prettierignore`), but components under `src/components/posts/` are code like any other and must pass `format:check` and `lint`.
 
 ## 📸 Photo Gallery
 
@@ -299,6 +354,7 @@ pnpm build                   # verify
 - `src/pages/[lang]/**` — English route tree (upstream is single-language).
 - The `getCollection("posts", …)` calls in `src/pages/**` — add per-locale (`zh/`) filtering.
 - `src/components/LanguageSwitcher.astro` + the redirect script in `src/layouts/Layout.astro`, both fed by `src/utils/resolveAlternate.ts` (which pages exist in each language: a new page needs a route file in both `src/pages/` and `src/pages/[lang]/` to get a counterpart link and `hreflang`).
+- `src/styles/typography.css` — every article override carries `:not(:where(.not-prose, .not-prose *))`; keep that guard on rules added or changed when merging upstream (see [Per-post components](#per-post-components)).
 - `src/styles/theme.css` `--font-app` (CJK stack) + the font import in `src/layouts/Layout.astro`.
 - `_redirects`, `package.json` (deploy-related deps & scripts).
 

@@ -23,6 +23,7 @@
 - **静态全文搜索**：基于 [Pagefind](https://pagefind.app/)，按语言分别索引；可选叠加 Cloudflare AI Search 语义结果（见 [语义搜索](#-语义搜索可选)）。
 - **数学公式**：Markdown 内嵌 LaTeX 公式，构建期由 [KaTeX](https://katex.org/) 渲染（remark-math + rehype-katex），无需客户端 JS。
 - **照片相册**：`/gallery` 页汇集设置了 `gallery: true` 的文章中的图床照片，按文章分组，悬停显示 EXIF（机型/镜头/参数），点击进 [PhotoSwipe](https://photoswipe.com/) 灯箱。可按相机、镜头、焦段筛选。缩略图与 EXIF 由脚本预生成入库（见 [照片相册](#-照片相册)）。**视频同样支持**：链接指向 `.mp4`/`.webm`/`.mov`/`.m4v` 即可，正文渲染成内联播放器，相册页收进一格带播放角标的画面。
+- **文章自带组件**：单篇文章可以带自己的组件（HTML/CSS/JS），放在 `src/components/posts/<slug>/`，在 `.mdx` 里引入；`not-prose` 隔开正文的样式和脚本（见 [文章自带组件](#文章自带组件)）。
 - **文章目录**：标题足够多的文章自动生成目录——宽屏（≥1280px）在正文右侧常驻并随阅读位置高亮，窄屏收进左下角的浮动按钮，点开是一张目录面板（见 [文章目录](#文章目录)）。
 - **SEO 优化**：预配置多语言 Meta 标签、Sitemap 与 OpenGraph。
 
@@ -113,6 +114,7 @@ pnpm dev
 │   │   └── [lang]/          # 英文（/en/）路由树
 │   ├── i18n/                # UI 文案（lang/zh.ts、lang/en.ts）+ 双语 helper
 │   └── components/          # 通用 UI 组件（含 LanguageSwitcher）
+│       └── posts/<slug>/    # 单篇文章自带的组件（中英两版共用）
 ├── _redirects              # Cloudflare Pages 重定向（构建时拷入 dist/）
 └── public/                 # 静态资源
 ```
@@ -164,6 +166,59 @@ shareLinks: [
   { name: "mail", url: "mailto:?subject={title}&body={url}" },
 ],
 ```
+
+### 文章自带组件
+
+Markdown 写不出来的东西，比如一组能点的色块、一段重绘的聊天记录、一张交互图表，可以给那篇文章单独写组件。示例文章 `post-components` 就是这么做的。
+
+组件放在 `src/components/posts/<slug>/`，`<slug>` 是文章的文件名，中英两版文章共用这个目录。文章写成 `.mdx`，用 `@/` 别名引入：
+
+```astro
+---
+// src/components/posts/my-trip/Distance.astro
+type Props = { km: number; label: string };
+const { km, label } = Astro.props;
+---
+
+<p class="not-prose distance"><strong>{km}</strong> km · {label}</p>
+
+<style>
+  .distance {
+    margin-block: 1.5rem;
+    color: var(--muted-foreground);
+  }
+  strong {
+    font-size: 2rem;
+    color: var(--accent);
+  }
+</style>
+```
+
+```mdx
+import Distance from "@/components/posts/my-trip/Distance.astro";
+
+<Distance km={1240} label="九天的总里程" />
+```
+
+- **边界**：正文的排版样式（标题、链接、图片、表格、代码、引用等）和正文脚本（标题旁的 `#` 链接、代码块的复制按钮、图片灯箱）都不会进入带 `not-prose` class 的元素，所以组件的根元素要加上它。它挡的是正文的规则和脚本：从外层继承下来的属性（字号、行高、文字颜色）照常生效，按语言的全站排版（比如中文 `<em>` 的着重号）和代码高亮、公式、callout 自己的样式也不归它管。组件里的图片想用文章的灯箱，加 `data-zoomable`：`<img src="…" alt="…" data-zoomable />`。
+- **颜色和深色模式**：`<style>` 默认只作用于本组件。颜色用 `src/styles/theme.css` 里的主题变量（`--background`、`--foreground`、`--accent`、`--accent-foreground`、`--muted`、`--muted-foreground`、`--border`），它们在深色主题下会自动换值，不用另写深色规则。Tailwind 的工具类（`text-accent`、`bg-muted` 等）也可以用。
+- **脚本**：组件里的 `<script>` 会打包成模块，浏览器只执行一次，ClientRouter 换页后不会再执行。初始化放进 `onPageReady`（`@/scripts/onPageReady`），它在首次加载和每次换页后各运行一次。挂在组件自己元素上的监听器会随旧页面一起丢掉；挂在 `document` / `window` 上的监听器和还没触发的定时器会比页面活得久，要在 `astro:before-swap` 时清掉。写法可以参考示例组件 `src/components/posts/post-components/ThemeSwatches.astro`。
+- **数据和文案**：数据多的话放一个 JSON 在组件旁边，在组件里 `import data from "./data.json";`，中英文章共用一份。文章自己的话用 props 传；按钮提示之类的界面文案可以用 `useTranslations(Astro.currentLocale)` 取站点现成的翻译。
+- **校验**：组件渲染时抛出的异常会让 `astro build` 失败，报错带着出错文章的路由（`Caught error rendering /posts/my-trip: …`），所以可以在组件里检查 props，不对就 `throw`。`astro check` 不检查 `.mdx` 传给组件的 props，`type Props` 只在组件内部起作用。
+- **和页面功能的关系**：目录只列 Markdown 标题（`##`），组件里的标题、MDX 里写成 JSX 的 `<h2>`、`.md` 里写成 HTML 的标题都不列入；直接写在正文里的 Markdown 仍由 Markdown 流程处理，即使外面包了一层 `not-prose`：标题照样进目录，表格照样套上横向滚动的容器；阅读时长按文章源文件计算，组件渲染出来的文字不计入；站内搜索索引的是渲染后的页面，组件里的文字能被搜到，不想被索引的部分加 `data-pagefind-ignore`；相册只收正文里 `![](…)` 写的图片，组件里的图片不会进相册。
+
+只是一小段不带脚本、也不复用的 HTML，就不必写组件，`.md` 文章里直接写 HTML 即可，同样可以加 `not-prose`。
+
+把 `.md` 改成 `.mdx` 时要注意（以下都在本仓库编译验证过）：
+
+- 正文里的 `{` `}` 会被当成 JS 表达式：`{name}` 构建时报 `name is not defined`，落单的 `{` 直接编译失败。字面量写成 `\{`，或放进行内代码。
+- `<` 后面紧跟字母、数字、`/` 或 `!` 时会被当成标签开头，`a<b`、`1<2` 都会报错；`1 < 2` 没问题，也可以写成 `\<`。
+- 不能用 HTML 注释 `<!-- -->`，改用 `{/* … */}`。
+- 空元素必须自闭合：`<br />`、`<img … />`，写成 `<br>` 会报错。
+- 不能用 `<https://…>` 形式的自动链接，直接写网址（会自动转成链接）或 `[文字](https://…)`。
+- 缩进四格的代码块不再是代码块，会变成普通段落，要用 ``` 围栏。
+- `keystatic-workers` 分支的 Keystatic 只认 `.md`，改成 `.mdx` 的文章不会出现在后台里。
+- `src/content/` 下的文章（`.md` 和 `.mdx`）都不经过 prettier（见 `.prettierignore`），但 `src/components/posts/` 下的组件和其他代码一样，要通过 `format:check` 和 `lint`。
 
 ## 📸 照片相册
 
@@ -307,6 +362,7 @@ pnpm build                   # 验证构建
 - `src/pages/[lang]/**` — 英文路由树（上游为单语言，无此目录）。
 - `src/pages/**` 中各页的 `getCollection("posts", …)` — 增加了按语言（`zh/`）过滤。
 - `src/components/LanguageSwitcher.astro` + `src/layouts/Layout.astro` 的语言重定向脚本，二者都依赖 `src/utils/resolveAlternate.ts`（判断各语言有哪些页面：新页面要在 `src/pages/` 和 `src/pages/[lang]/` 下都有路由文件，才会生成对应语言的链接和 `hreflang`）。
+- `src/styles/typography.css` — 正文排版覆盖规则都带 `:not(:where(.not-prose, .not-prose *))`，合并上游新增或改动的规则时要保留这个守卫（见 [文章自带组件](#文章自带组件)）。
 - `src/styles/theme.css` 的 `--font-app`（中文字体栈）+ `src/layouts/Layout.astro` 的字体导入。
 - `_redirects`、`package.json`（部署相关依赖与脚本）。
 
