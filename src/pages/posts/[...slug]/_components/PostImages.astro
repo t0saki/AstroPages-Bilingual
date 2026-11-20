@@ -8,6 +8,10 @@ import config from "@/config";
  *   (read from `data-image-info` on `#article`); other images are untouched;
  * - a PhotoSwipe viewer over all article images (src/scripts/photoViewer.ts —
  *   the same viewer as the gallery page), with prev/next across the post.
+ *
+ * Images inside a `.not-prose` subtree belong to a component the post placed
+ * in the article (README, "Per-post components") and are left alone, unless
+ * the component opts one into the viewer with `data-zoomable`.
  */
 const locale = Astro.currentLocale ?? config.site.lang;
 const t = useTranslations(locale);
@@ -65,6 +69,16 @@ const pswpStrings = JSON.stringify({
     }
   }
 
+  /**
+   * Does the viewer take this image? Not a linked one, which keeps its link,
+   * nor a component's without `data-zoomable`. The slide list and the
+   * click/keyboard trigger both ask this, so they can't disagree.
+   */
+  function isViewerImage(image: HTMLImageElement): boolean {
+    if (image.closest("a")) return false;
+    return !image.closest(".not-prose") || image.hasAttribute("data-zoomable");
+  }
+
   function destroyViewer() {
     lightbox?.destroy();
     lightbox = null;
@@ -76,7 +90,9 @@ const pswpStrings = JSON.stringify({
     image.dataset.photo = "1";
     if (info.camera) image.dataset.exifCamera = info.camera;
     if (info.settings) image.dataset.exifSettings = info.settings;
-    if (image.closest(".img-info")) return;
+    // A component's image stays where its markup put it: the caption still
+    // reaches the lightbox, but no overlay wrapper goes around it.
+    if (image.closest(".img-info, .not-prose")) return;
 
     const lines = [
       [image.alt, "img-info-caption"],
@@ -122,7 +138,7 @@ const pswpStrings = JSON.stringify({
     // The delegated listeners below don't need them to exist yet.
     requestAnimationFrame(() => {
       viewerImages = Array.from(article.querySelectorAll("img")).filter(
-        image => !image.closest("a")
+        isViewerImage
       );
       for (const image of viewerImages) {
         image.setAttribute("role", "button");
@@ -168,7 +184,9 @@ const pswpStrings = JSON.stringify({
 
     const triggerFromEvent = (e: Event): HTMLImageElement | null => {
       const image = (e.target as HTMLElement).closest("img");
-      if (!image || !article.contains(image) || image.closest("a")) return null;
+      if (!image || !article.contains(image) || !isViewerImage(image)) {
+        return null;
+      }
       return image;
     };
 

@@ -4,6 +4,11 @@
  * src/pages/posts/[...slug]/_components/BackToTopButton.astro), heading anchor
  * links and code copy buttons.
  *
+ * Headings and code blocks inside a `.not-prose` subtree are left alone: that
+ * is a component the post placed in the article, which brings its own markup
+ * and behaviour (README, "Per-post components"). The article's styles stop at
+ * the same boundary (typography.css).
+ *
  * This is a bundled module, run once per page instance through `onPageReady`.
  * Every listener it adds hangs off one `AbortController` that
  * `astro:before-swap` aborts, so none outlives its page: a `document` scroll
@@ -38,6 +43,9 @@ const FALLBACK_STRINGS: PostStrings = {
   copyFailed: "Copy failed",
   headingAnchor: "Link to section: {{heading}}",
 };
+
+/** Inside a `.not-prose` subtree, which the enhancements skip. */
+const inNotProse = (element: Element) => element.closest(".not-prose") !== null;
 
 /** Cleanup for the page instance currently wired up. */
 let teardown: (() => void) | null = null;
@@ -88,6 +96,7 @@ function addHeadingLinks(article: HTMLElement, strings: PostStrings) {
     ":is(h2, h3, h4, h5, h6)[id]"
   );
   for (const heading of headings) {
+    if (inNotProse(heading)) continue;
     const text = readableText(heading).replace(/\s+/g, " ").trim();
 
     heading.classList.add("group");
@@ -119,7 +128,9 @@ function attachCopyButtons(
   strings: PostStrings,
   signal: AbortSignal
 ) {
-  const codeBlocks = article.querySelectorAll("pre");
+  const codeBlocks = Array.from(article.querySelectorAll("pre")).filter(
+    codeBlock => !inNotProse(codeBlock)
+  );
   const timers = new Map<HTMLButtonElement, number>();
   if (codeBlocks.length === 0) return () => {};
 
